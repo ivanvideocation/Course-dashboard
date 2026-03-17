@@ -7,69 +7,77 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #f5f4f0; --card: #ffffff; --border: #e2e0d8;
-    --text: #1a1a18; --muted: #6b6a64; --accent: #4a3fd4;
-    --accent-light: #ede9ff; --success: #1a7a4a; --success-bg: #e6f5ee;
-    --error: #b93535; --error-bg: #fceaea; --warning: #c67d10;
-    --warning-bg: #fdf3e0; --radius: 12px;
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#f5f4f0;--card:#fff;--border:#e2e0d8;--text:#1a1a18;--muted:#6b6a64;
+    --accent:#4a3fd4;--accent-light:#ede9ff;--success:#1a7a4a;--success-bg:#e6f5ee;
+    --error:#b93535;--error-bg:#fceaea;--warning:#c67d10;--warning-bg:#fdf3e0;--radius:12px;
   }
-  body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px 16px; }
-  .shell { max-width: 1100px; margin: 0 auto; }
+  body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:24px 16px}
+  .shell{max-width:1100px;margin:0 auto}
 
   /* Header */
-  .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
-  .dash-header h1 { font-size: 20px; font-weight: 600; }
-  .dash-header p { font-size: 13px; color: var(--muted); margin-top: 3px; }
-  .refresh-btn { padding: 8px 16px; border-radius: 8px; border: 1.5px solid var(--accent); background: transparent; color: var(--accent); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; }
-  .refresh-btn:hover { background: var(--accent-light); }
-  .last-updated { font-size: 12px; color: var(--muted); margin-top: 4px; text-align: right; }
+  .dash-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+  .dash-header h1{font-size:20px;font-weight:600}
+  .dash-header p{font-size:13px;color:var(--muted);margin-top:3px}
+  .header-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .refresh-btn{padding:8px 16px;border-radius:8px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+  .refresh-btn:hover{background:var(--accent-light)}
+  .last-updated{font-size:12px;color:var(--muted)}
 
-  /* KPI grid */
-  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-  .kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; }
-  .kpi-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
-  .kpi-value { font-size: 32px; font-weight: 700; line-height: 1; }
-  .kpi-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
-  .kpi-value.green { color: var(--success); }
-  .kpi-value.amber { color: var(--warning); }
-  .kpi-value.red { color: var(--error); }
-  .kpi-value.purple { color: var(--accent); }
+  /* Filters */
+  .filters{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;align-items:center}
+  .filter-label{font-size:13px;color:var(--muted);font-weight:500}
+  .filter-select{padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--card);font-size:13px;color:var(--text);cursor:pointer;outline:none;transition:border-color .15s}
+  .filter-select:focus{border-color:var(--accent)}
+  .filter-tag{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;background:var(--accent-light);color:var(--accent);border:1px solid #c4b9f5}
 
-  /* Charts row */
-  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-  .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
-  .chart-card h2 { font-size: 14px; font-weight: 500; color: var(--muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: .05em; }
-  .chart-wrap { position: relative; height: 220px; }
+  /* KPIs */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+  .kpi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px}
+  .kpi-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+  .kpi-value{font-size:32px;font-weight:700;line-height:1}
+  .kpi-sub{font-size:12px;color:var(--muted);margin-top:6px}
+  .green{color:var(--success)}.amber{color:var(--warning)}.red{color:var(--error)}.purple{color:var(--accent)}
 
-  /* Tables row */
-  .tables-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
-  .table-card h2 { font-size: 14px; font-weight: 500; color: var(--muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: .05em; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); font-weight: 500; color: var(--muted); font-size: 12px; }
-  td { padding: 9px 10px; border-bottom: 1px solid var(--border); }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: var(--bg); }
-  .pill { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
-  .pill.green { background: var(--success-bg); color: var(--success); }
-  .pill.red { background: var(--error-bg); color: var(--error); }
-  .pill.amber { background: var(--warning-bg); color: var(--warning); }
+  /* Charts */
+  .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+  .chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px}
+  .chart-card h2{font-size:13px;font-weight:500;color:var(--muted);margin-bottom:16px;text-transform:uppercase;letter-spacing:.05em}
+  .chart-wrap{position:relative;height:220px}
 
-  /* Individual table */
-  .individual-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; }
-  .individual-card h2 { font-size: 14px; font-weight: 500; color: var(--muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: .05em; }
-  .table-scroll { overflow-x: auto; }
+  /* Tables */
+  .tables-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px}
+  .table-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px}
+  .table-card h2{font-size:13px;font-weight:500;color:var(--muted);margin-bottom:16px;text-transform:uppercase;letter-spacing:.05em}
+  .tables-row-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);font-weight:500;color:var(--muted);font-size:12px}
+  td{padding:9px 10px;border-bottom:1px solid var(--border)}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:var(--bg)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+  .pill.green{background:var(--success-bg);color:var(--success)}
+  .pill.red{background:var(--error-bg);color:var(--error)}
+  .pill.amber{background:var(--warning-bg);color:var(--warning)}
+  .pill.blue{background:var(--accent-light);color:var(--accent)}
 
-  /* Loading / empty */
-  .state-msg { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 15px; }
-  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 14px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  /* Individual */
+  .individual-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px}
+  .individual-card h2{font-size:13px;font-weight:500;color:var(--muted);margin-bottom:16px;text-transform:uppercase;letter-spacing:.05em}
+  .table-scroll{overflow-x:auto}
 
-  @media (max-width: 700px) {
-    .kpi-grid { grid-template-columns: 1fr 1fr; }
-    .charts-row, .tables-row { grid-template-columns: 1fr; }
+  /* State */
+  .state-msg{text-align:center;padding:60px 20px;color:var(--muted);font-size:15px}
+  .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 14px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Lang badge */
+  .lang-flag{font-size:14px}
+
+  @media(max-width:800px){
+    .kpi-grid{grid-template-columns:1fr 1fr}
+    .charts-row,.tables-row,.tables-row-2{grid-template-columns:1fr}
   }
 </style>
 </head>
@@ -79,20 +87,41 @@
   <div class="dash-header">
     <div>
       <h1>Trainer Dashboard</h1>
-      <p>Module 3 — Effective team communication</p>
+      <p>Course analytics — all courses and clients</p>
     </div>
-    <div>
+    <div class="header-right">
       <button class="refresh-btn" onclick="loadData()">⟳ Refresh</button>
       <div class="last-updated" id="last-updated"></div>
     </div>
   </div>
 
-  <div id="loading" class="state-msg"><div class="spinner"></div>Loading data…</div>
-  <div id="dashboard" style="display:none">
+  <!-- Filters -->
+  <div class="filters">
+    <span class="filter-label">Filter:</span>
+    <select class="filter-select" id="filter-course" onchange="applyFilters()">
+      <option value="">All courses</option>
+    </select>
+    <select class="filter-select" id="filter-company" onchange="applyFilters()">
+      <option value="">All companies</option>
+    </select>
+    <select class="filter-select" id="filter-lang" onchange="applyFilters()">
+      <option value="">All languages</option>
+      <option value="no">🇳🇴 Norsk</option>
+      <option value="en">🇬🇧 English</option>
+      <option value="es">🇪🇸 Español</option>
+    </select>
+    <select class="filter-select" id="filter-quiz" onchange="applyFilters()">
+      <option value="">All quizzes</option>
+    </select>
+    <span class="filter-tag" id="active-filter" style="display:none"></span>
+  </div>
 
+  <div id="loading" class="state-msg"><div class="spinner"></div>Loading data…</div>
+
+  <div id="dashboard" style="display:none">
     <!-- KPIs -->
     <div class="kpi-grid">
-      <div class="kpi-card"><div class="kpi-label">Total submissions</div><div class="kpi-value purple" id="kpi-total">—</div><div class="kpi-sub">all time</div></div>
+      <div class="kpi-card"><div class="kpi-label">Total submissions</div><div class="kpi-value purple" id="kpi-total">—</div><div class="kpi-sub">filtered results</div></div>
       <div class="kpi-card"><div class="kpi-label">Average score</div><div class="kpi-value" id="kpi-avg">—</div><div class="kpi-sub">auto-graded questions</div></div>
       <div class="kpi-card"><div class="kpi-label">Pass rate</div><div class="kpi-value" id="kpi-pass">—</div><div class="kpi-sub">score ≥ 70%</div></div>
       <div class="kpi-card"><div class="kpi-label">Last submission</div><div class="kpi-value purple" id="kpi-last" style="font-size:18px;padding-top:6px">—</div><div class="kpi-sub" id="kpi-last-who"></div></div>
@@ -100,180 +129,216 @@
 
     <!-- Charts -->
     <div class="charts-row">
-      <div class="chart-card">
-        <h2>Fail rate by question</h2>
-        <div class="chart-wrap"><canvas id="chart-fail"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <h2>Avg score by department</h2>
-        <div class="chart-wrap"><canvas id="chart-dept"></canvas></div>
-      </div>
+      <div class="chart-card"><h2>Fail rate by question</h2><div class="chart-wrap"><canvas id="chart-fail"></canvas></div></div>
+      <div class="chart-card"><h2>Avg score by department</h2><div class="chart-wrap"><canvas id="chart-dept"></canvas></div></div>
     </div>
 
-    <!-- Tables -->
+    <!-- Tables row 1 -->
     <div class="tables-row">
       <div class="table-card">
-        <h2>Avg score by company</h2>
-        <table>
-          <thead><tr><th>Company</th><th>Avg score</th><th>Submissions</th></tr></thead>
-          <tbody id="tbl-company"></tbody>
-        </table>
+        <h2>By course</h2>
+        <table><thead><tr><th>Course</th><th>Avg</th><th>Count</th></tr></thead><tbody id="tbl-course"></tbody></table>
       </div>
       <div class="table-card">
-        <h2>Avg score by department</h2>
-        <table>
-          <thead><tr><th>Department</th><th>Avg score</th><th>Submissions</th></tr></thead>
-          <tbody id="tbl-dept"></tbody>
-        </table>
+        <h2>By company</h2>
+        <table><thead><tr><th>Company</th><th>Avg</th><th>Count</th></tr></thead><tbody id="tbl-company"></tbody></table>
+      </div>
+      <div class="table-card">
+        <h2>By department</h2>
+        <table><thead><tr><th>Department</th><th>Avg</th><th>Count</th></tr></thead><tbody id="tbl-dept"></tbody></table>
       </div>
     </div>
 
-    <!-- Individual progress -->
+    <!-- Tables row 2 -->
+    <div class="tables-row-2">
+      <div class="table-card">
+        <h2>By quiz</h2>
+        <table><thead><tr><th>Quiz</th><th>Avg</th><th>Count</th></tr></thead><tbody id="tbl-quiz"></tbody></table>
+      </div>
+      <div class="table-card">
+        <h2>By language</h2>
+        <table><thead><tr><th>Language</th><th>Avg</th><th>Count</th></tr></thead><tbody id="tbl-lang"></tbody></table>
+      </div>
+    </div>
+
+    <!-- Individual -->
     <div class="individual-card">
       <h2>Individual progress</h2>
       <div class="table-scroll">
         <table>
-          <thead><tr><th>Name</th><th>Company</th><th>Department</th><th>Date</th><th>Score</th><th>Q1</th><th>Q3</th></tr></thead>
+          <thead><tr><th>Name</th><th>Company</th><th>Dept</th><th>Course</th><th>Quiz</th><th>Lang</th><th>Date</th><th>Score</th><th>Q1</th><th>Q3</th></tr></thead>
           <tbody id="tbl-individual"></tbody>
         </table>
       </div>
     </div>
-
   </div>
-  <div id="empty" class="state-msg" style="display:none">No submissions yet. Share the exercise with your team to start collecting data.</div>
+
+  <div id="empty" class="state-msg" style="display:none">No submissions yet for the selected filters.</div>
 </div>
 
 <script>
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRXuZWrh9bCZz2HCxM8iqt7-MBvWAyNtKshr38eCP3eUQAUGoNUF8ZAXu6ftYkKwExNQRcid2cJxkJM/pub?gid=0&single=true&output=csv';
+const CSV_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vRXuZWrh9bCZz2HCxM8iqt7-MBvWAyNtKshr38eCP3eUQAUGoNUF8ZAXu6ftYkKwExNQRcid2cJxkJM/pub?gid=0&single=true&output=csv';
 
-let chartFail = null, chartDept = null;
+let allRows=[];
+let chartFail=null, chartDept=null;
 
-function pct(n) { return Math.round(n) + '%'; }
-function scoreColor(n) { return n >= 70 ? 'green' : n >= 40 ? 'amber' : 'red'; }
+function pct(n){return Math.round(n)+'%'}
+function scoreColor(n){return n>=70?'green':n>=40?'amber':'red'}
+function avg_(arr){return arr.length?arr.reduce((s,r)=>s+r._score,0)/arr.length:0}
+function groupBy(arr,key){return arr.reduce((acc,r)=>{const k=r[key]||'Unknown';(acc[k]=acc[k]||[]).push(r);return acc;},{})}
+function langFlag(l){return l==='no'?'🇳🇴 Norsk':l==='en'?'🇬🇧 English':l==='es'?'🇪🇸 Español':l||'—'}
 
-async function loadData() {
-  document.getElementById('loading').style.display = 'block';
-  document.getElementById('dashboard').style.display = 'none';
-  document.getElementById('empty').style.display = 'none';
-
-  try {
-    const res = await fetch(CSV_URL + '&t=' + Date.now());
-    const text = await res.text();
-    const { data } = Papa.parse(text, { header: true, skipEmptyLines: true });
-
-    if (!data.length) {
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('empty').style.display = 'block';
-      return;
-    }
-
-    render(data);
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
-    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB');
-  } catch(e) {
-    document.getElementById('loading').innerHTML = '<p style="color:var(--error)">Could not load data. Check the sheet is published and try again.</p>';
+async function loadData(){
+  document.getElementById('loading').style.display='block';
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('empty').style.display='none';
+  try{
+    const res=await fetch(CSV_URL+'&t='+Date.now());
+    const text=await res.text();
+    const{data}=Papa.parse(text,{header:true,skipEmptyLines:true});
+    allRows=data;
+    allRows.forEach(r=>{r._score=parseFloat(r.Score_pct)||0;});
+    populateFilters();
+    applyFilters();
+    document.getElementById('last-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB');
+  }catch(e){
+    document.getElementById('loading').innerHTML='<p style="color:var(--error)">Could not load data. Check the sheet is published and try again.</p>';
   }
 }
 
-function render(rows) {
-  // Parse scores
-  rows.forEach(r => { r._score = parseFloat(r.Score_pct) || 0; });
+function populateFilters(){
+  const courses=[...new Set(allRows.map(r=>r.Course).filter(Boolean))];
+  const companies=[...new Set(allRows.map(r=>r.Company).filter(Boolean))];
+  const quizzes=[...new Set(allRows.map(r=>r.Quiz).filter(Boolean))];
+
+  const fc=document.getElementById('filter-course');
+  fc.innerHTML='<option value="">All courses</option>'+courses.map(c=>`<option value="${c}">${c}</option>`).join('');
+
+  const fco=document.getElementById('filter-company');
+  fco.innerHTML='<option value="">All companies</option>'+companies.map(c=>`<option value="${c}">${c}</option>`).join('');
+
+  const fq=document.getElementById('filter-quiz');
+  fq.innerHTML='<option value="">All quizzes</option>'+quizzes.map(q=>`<option value="${q}">${q}</option>`).join('');
+}
+
+function applyFilters(){
+  const course=document.getElementById('filter-course').value;
+  const company=document.getElementById('filter-company').value;
+  const lang=document.getElementById('filter-lang').value;
+  const quiz=document.getElementById('filter-quiz').value;
+
+  let rows=allRows;
+  if(course) rows=rows.filter(r=>r.Course===course);
+  if(company) rows=rows.filter(r=>r.Company===company);
+  if(lang) rows=rows.filter(r=>(r.Language||'').toLowerCase()===lang);
+  if(quiz) rows=rows.filter(r=>r.Quiz===quiz);
+
+  // Active filter badge
+  const filters=[course,company,lang,quiz].filter(Boolean);
+  const badge=document.getElementById('active-filter');
+  if(filters.length){badge.style.display='inline-flex';badge.textContent=`${filters.length} filter${filters.length>1?'s':''} active`;}
+  else{badge.style.display='none';}
+
+  if(!rows.length){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('dashboard').style.display='none';
+    document.getElementById('empty').style.display='block';
+    return;
+  }
+  document.getElementById('loading').style.display='none';
+  document.getElementById('empty').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  render(rows);
+}
+
+function render(rows){
+  const total=rows.length;
+  const avgScore=avg_(rows);
+  const pass=rows.filter(r=>r._score>=70).length;
+  const last=rows[rows.length-1];
 
   // KPIs
-  const total = rows.length;
-  const avg = rows.reduce((s, r) => s + r._score, 0) / total;
-  const pass = rows.filter(r => r._score >= 70).length;
-  const last = rows[rows.length - 1];
+  document.getElementById('kpi-total').textContent=total;
+  const avgEl=document.getElementById('kpi-avg');
+  avgEl.textContent=pct(avgScore); avgEl.className='kpi-value '+scoreColor(avgScore);
+  const passEl=document.getElementById('kpi-pass');
+  passEl.textContent=pct(pass/total*100); passEl.className='kpi-value '+scoreColor(pass/total*100);
+  document.getElementById('kpi-last').textContent=last.Date||'—';
+  document.getElementById('kpi-last-who').textContent=last.Name?`${last.Name} · ${last.Company}`:'';
 
-  document.getElementById('kpi-total').textContent = total;
-
-  const avgEl = document.getElementById('kpi-avg');
-  avgEl.textContent = pct(avg);
-  avgEl.className = 'kpi-value ' + scoreColor(avg);
-
-  const passEl = document.getElementById('kpi-pass');
-  passEl.textContent = pct(pass / total * 100);
-  passEl.className = 'kpi-value ' + scoreColor(pass / total * 100);
-
-  document.getElementById('kpi-last').textContent = last.Date || '—';
-  document.getElementById('kpi-last-who').textContent = last.Name ? `${last.Name} · ${last.Company}` : '';
-
-  // Fail rate by question
-  const q1fail = rows.filter(r => r.Q1_correct === 'FALSE' || r.Q1_correct === false).length / total * 100;
-  const q3fail = rows.filter(r => r.Q3_correct === 'FALSE' || r.Q3_correct === false).length / total * 100;
-
-  if (chartFail) chartFail.destroy();
-  chartFail = new Chart(document.getElementById('chart-fail'), {
-    type: 'bar',
-    data: {
-      labels: ['Q1 — Active listening', 'Q3 — Step ordering'],
-      datasets: [{ data: [q1fail, q3fail], backgroundColor: ['#f0997b','#AFA9EC'], borderRadius: 6, borderSkipped: false }]
-    },
-    options: {
-      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#e2e0d8' } },
-        y: { grid: { display: false } }
-      }
-    }
+  // Fail rate chart
+  const q1fail=rows.filter(r=>r.Q1_correct==='FALSE'||r.Q1_correct===false).length/total*100;
+  const q3fail=rows.filter(r=>r.Q3_correct==='FALSE'||r.Q3_correct===false).length/total*100;
+  if(chartFail)chartFail.destroy();
+  chartFail=new Chart(document.getElementById('chart-fail'),{
+    type:'bar',
+    data:{labels:['Q1','Q3'],datasets:[{data:[q1fail,q3fail],backgroundColor:['#f0997b','#AFA9EC'],borderRadius:6,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{max:100,ticks:{callback:v=>v+'%'},grid:{color:'#e2e0d8'}},y:{grid:{display:false}}}}
   });
 
-  // By department
-  const depts = groupBy(rows, 'Department');
-  const deptLabels = Object.keys(depts);
-  const deptAvgs = deptLabels.map(d => avg_(depts[d]));
-
-  if (chartDept) chartDept.destroy();
-  chartDept = new Chart(document.getElementById('chart-dept'), {
-    type: 'bar',
-    data: {
-      labels: deptLabels,
-      datasets: [{ data: deptAvgs, backgroundColor: '#4a3fd4cc', borderRadius: 6, borderSkipped: false }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#e2e0d8' } },
-        x: { grid: { display: false } }
-      }
-    }
+  // Dept chart
+  const depts=groupBy(rows,'Department');
+  const deptLabels=Object.keys(depts);
+  const deptAvgs=deptLabels.map(d=>avg_(depts[d]));
+  if(chartDept)chartDept.destroy();
+  chartDept=new Chart(document.getElementById('chart-dept'),{
+    type:'bar',
+    data:{labels:deptLabels,datasets:[{data:deptAvgs,backgroundColor:'#4a3fd4cc',borderRadius:6,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{max:100,ticks:{callback:v=>v+'%'},grid:{color:'#e2e0d8'}},x:{grid:{display:false}}}}
   });
 
-  // Company table
-  const companies = groupBy(rows, 'Company');
-  document.getElementById('tbl-company').innerHTML = Object.keys(companies).map(c => {
-    const a = avg_(companies[c]);
-    return `<tr><td>${c}</td><td><span class="pill ${scoreColor(a)}">${pct(a)}</span></td><td>${companies[c].length}</td></tr>`;
+  // By course
+  const courses=groupBy(rows,'Course');
+  document.getElementById('tbl-course').innerHTML=Object.keys(courses).map(c=>{
+    const a=avg_(courses[c]);
+    return`<tr><td>${c||'—'}</td><td><span class="pill ${scoreColor(a)}">${pct(a)}</span></td><td>${courses[c].length}</td></tr>`;
+  }).join('')||'<tr><td colspan="3" style="color:var(--muted)">No data</td></tr>';
+
+  // By company
+  const companies=groupBy(rows,'Company');
+  document.getElementById('tbl-company').innerHTML=Object.keys(companies).map(c=>{
+    const a=avg_(companies[c]);
+    return`<tr><td>${c}</td><td><span class="pill ${scoreColor(a)}">${pct(a)}</span></td><td>${companies[c].length}</td></tr>`;
   }).join('');
 
-  // Dept table
-  document.getElementById('tbl-dept').innerHTML = deptLabels.map((d, i) => {
-    const a = deptAvgs[i];
-    return `<tr><td>${d}</td><td><span class="pill ${scoreColor(a)}">${pct(a)}</span></td><td>${depts[d].length}</td></tr>`;
+  // By dept
+  document.getElementById('tbl-dept').innerHTML=deptLabels.map((d,i)=>{
+    const a=deptAvgs[i];
+    return`<tr><td>${d}</td><td><span class="pill ${scoreColor(a)}">${pct(a)}</span></td><td>${depts[d].length}</td></tr>`;
   }).join('');
 
-  // Individual table (sorted by score desc)
-  const sorted = [...rows].sort((a, b) => b._score - a._score);
-  document.getElementById('tbl-individual').innerHTML = sorted.map(r => `
+  // By quiz
+  const quizzes=groupBy(rows,'Quiz');
+  document.getElementById('tbl-quiz').innerHTML=Object.keys(quizzes).map(q=>{
+    const a=avg_(quizzes[q]);
+    return`<tr><td>${q||'—'}</td><td><span class="pill ${scoreColor(a)}">${pct(a)}</span></td><td>${quizzes[q].length}</td></tr>`;
+  }).join('')||'<tr><td colspan="3" style="color:var(--muted)">No data</td></tr>';
+
+  // By language
+  const langs=groupBy(rows,'Language');
+  document.getElementById('tbl-lang').innerHTML=Object.keys(langs).map(l=>{
+    const a=avg_(langs[l]);
+    return`<tr><td>${langFlag(l)}</td><td><span class="pill ${scoreColor(a)}">${pct(a)}</span></td><td>${langs[l].length}</td></tr>`;
+  }).join('')||'<tr><td colspan="3" style="color:var(--muted)">No data</td></tr>';
+
+  // Individual
+  const sorted=[...rows].sort((a,b)=>b._score-a._score);
+  document.getElementById('tbl-individual').innerHTML=sorted.map(r=>`
     <tr>
       <td>${r.Name||'—'}</td>
       <td>${r.Company||'—'}</td>
       <td>${r.Department||'—'}</td>
+      <td>${r.Course||'—'}</td>
+      <td>${r.Quiz||'—'}</td>
+      <td>${langFlag(r.Language)}</td>
       <td>${r.Date||'—'}</td>
       <td><span class="pill ${scoreColor(r._score)}">${pct(r._score)}</span></td>
-      <td>${r.Q1_correct==='TRUE'||r.Q1_correct===true ? '✓' : '✗'}</td>
-      <td>${r.Q3_correct==='TRUE'||r.Q3_correct===true ? '✓' : '✗'}</td>
-    </tr>
-  `).join('');
+      <td>${r.Q1_correct==='TRUE'||r.Q1_correct===true?'✓':'✗'}</td>
+      <td>${r.Q3_correct==='TRUE'||r.Q3_correct===true?'✓':'✗'}</td>
+    </tr>`).join('');
 }
-
-function groupBy(arr, key) {
-  return arr.reduce((acc, r) => { const k = r[key]||'Unknown'; (acc[k]=acc[k]||[]).push(r); return acc; }, {});
-}
-function avg_(arr) { return arr.reduce((s, r) => s + r._score, 0) / arr.length; }
 
 loadData();
 </script>
