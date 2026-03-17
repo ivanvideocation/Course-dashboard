@@ -711,8 +711,9 @@ async function submitQuiz(){
   let synced=false;
   try{
     await fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name:state.name,company:state.company,department:state.dept,
-        date:new Date().toISOString().slice(0,10),quiz:'Quiz 1',language:lang,
+              body:JSON.stringify({name:state.name,company:state.company,department:state.dept,
+        date:new Date().toISOString().slice(0,10),
+        course:'HMS for alle ansatte',quiz:'Quiz 1',language:lang,
         q1_answer:state.q1!==null?T[lang].q[0].opts[state.q1]:'—',q1_correct:c1,
         q2_response:state.q2||'—',
         q3_answer:state.q3!==null?T[lang].q[2].opts[state.q3]:'—',q3_correct:c3,
