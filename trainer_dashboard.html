@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trainer Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f4f0; --card: #ffffff; --border: #e2e0d8;
+    --text: #1a1a18; --muted: #6b6a64; --accent: #4a3fd4;
+    --accent-light: #ede9ff; --success: #1a7a4a; --success-bg: #e6f5ee;
+    --error: #b93535; --error-bg: #fceaea; --warning: #c67d10;
+    --warning-bg: #fdf3e0; --radius: 12px;
+  }
+  body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px 16px; }
+  .shell { max-width: 1100px; margin: 0 auto; }
+
+  /* Header */
+  .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
+  .dash-header h1 { font-size: 20px; font-weight: 600; }
+  .dash-header p { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .refresh-btn { padding: 8px 16px; border-radius: 8px; border: 1.5px solid var(--accent); background: transparent; color: var(--accent); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; }
+  .refresh-btn:hover { background: var(--accent-light); }
+  .last-updated { font-size: 12px; color: var(--muted); margin-top: 4px; text-align: right; }
+
+  /* KPI grid */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; }
+  .kpi-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+  .kpi-value { font-size: 32px; font-weight: 700; line-height: 1; }
+  .kpi-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .kpi-value.green { color: var(--success); }
+  .kpi-value.amber { color: var(--warning); }
+  .kpi-value.red { color: var(--error); }
+  .kpi-value.purple { color: var(--accent); }
+
+  /* Charts row */
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+  .chart-card h2 { font-size: 14px; font-weight: 500; color: var(--muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: .05em; }
+  .chart-wrap { position: relative; height: 220px; }
+
+  /* Tables row */
+  .tables-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+  .table-card h2 { font-size: 14px; font-weight: 500; color: var(--muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: .05em; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); font-weight: 500; color: var(--muted); font-size: 12px; }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg); }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .pill.green { background: var(--success-bg); color: var(--success); }
+  .pill.red { background: var(--error-bg); color: var(--error); }
+  .pill.amber { background: var(--warning-bg); color: var(--warning); }
+
+  /* Individual table */
+  .individual-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; }
+  .individual-card h2 { font-size: 14px; font-weight: 500; color: var(--muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: .05em; }
+  .table-scroll { overflow-x: auto; }
+
+  /* Loading / empty */
+  .state-msg { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 15px; }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 14px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 700px) {
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .charts-row, .tables-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="dash-header">
+    <div>
+      <h1>Trainer Dashboard</h1>
+      <p>Module 3 — Effective team communication</p>
+    </div>
+    <div>
+      <button class="refresh-btn" onclick="loadData()">⟳ Refresh</button>
+      <div class="last-updated" id="last-updated"></div>
+    </div>
+  </div>
+
+  <div id="loading" class="state-msg"><div class="spinner"></div>Loading data…</div>
+  <div id="dashboard" style="display:none">
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">Total submissions</div><div class="kpi-value purple" id="kpi-total">—</div><div class="kpi-sub">all time</div></div>
+      <div class="kpi-card"><div class="kpi-label">Average score</div><div class="kpi-value" id="kpi-avg">—</div><div class="kpi-sub">auto-graded questions</div></div>
+      <div class="kpi-card"><div class="kpi-label">Pass rate</div><div class="kpi-value" id="kpi-pass">—</div><div class="kpi-sub">score ≥ 70%</div></div>
+      <div class="kpi-card"><div class="kpi-label">Last submission</div><div class="kpi-value purple" id="kpi-last" style="font-size:18px;padding-top:6px">—</div><div class="kpi-sub" id="kpi-last-who"></div></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <h2>Fail rate by question</h2>
+        <div class="chart-wrap"><canvas id="chart-fail"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h2>Avg score by department</h2>
+        <div class="chart-wrap"><canvas id="chart-dept"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Tables -->
+    <div class="tables-row">
+      <div class="table-card">
+        <h2>Avg score by company</h2>
+        <table>
+          <thead><tr><th>Company</th><th>Avg score</th><th>Submissions</th></tr></thead>
+          <tbody id="tbl-company"></tbody>
+        </table>
+      </div>
+      <div class="table-card">
+        <h2>Avg score by department</h2>
+        <table>
+          <thead><tr><th>Department</th><th>Avg score</th><th>Submissions</th></tr></thead>
+          <tbody id="tbl-dept"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Individual progress -->
+    <div class="individual-card">
+      <h2>Individual progress</h2>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Name</th><th>Company</th><th>Department</th><th>Date</th><th>Score</th><th>Q1</th><th>Q3</th></tr></thead>
+          <tbody id="tbl-individual"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+  <div id="empty" class="state-msg" style="display:none">No submissions yet. Share the exercise with your team to start collecting data.</div>
+</div>
+
+<script>
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRXuZWrh9bCZz2HCxM8iqt7-MBvWAyNtKshr38eCP3eUQAUGoNUF8ZAXu6ftYkKwExNQRcid2cJxkJM/pub?gid=0&single=true&output=csv';
+
+let chartFail = null, chartDept = null;
+
+function pct(n) { return Math.round(n) + '%'; }
+function scoreColor(n) { return n >= 70 ? 'green' : n >= 40 ? 'amber' : 'red'; }
+
+async function loadData() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('empty').style.display = 'none';
+
+  try {
+    const res = await fetch(CSV_URL + '&t=' + Date.now());
+    const text = await res.text();
+    const { data } = Papa.parse(text, { header: true, skipEmptyLines: true });
+
+    if (!data.length) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('empty').style.display = 'block';
+      return;
+    }
+
+    render(data);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB');
+  } catch(e) {
+    document.getElementById('loading').innerHTML = '<p style="color:var(--error)">Could not load data. Check the sheet is published and try again.</p>';
+  }
+}
+
+function render(rows) {
+  // Parse scores
+  rows.forEach(r => { r._score = parseFloat(r.Score_pct) || 0; });
+
+  // KPIs
+  const total = rows.length;
+  const avg = rows.reduce((s, r) => s + r._score, 0) / total;
+  const pass = rows.filter(r => r._score >= 70).length;
+  const last = rows[rows.length - 1];
+
+  document.getElementById('kpi-total').textContent = total;
+
+  const avgEl = document.getElementById('kpi-avg');
+  avgEl.textContent = pct(avg);
+  avgEl.className = 'kpi-value ' + scoreColor(avg);
+
+  const passEl = document.getElementById('kpi-pass');
+  passEl.textContent = pct(pass / total * 100);
+  passEl.className = 'kpi-value ' + scoreColor(pass / total * 100);
+
+  document.getElementById('kpi-last').textContent = last.Date || '—';
+  document.getElementById('kpi-last-who').textContent = last.Name ? `${last.Name} · ${last.Company}` : '';
+
+  // Fail rate by question
+  const q1fail = rows.filter(r => r.Q1_correct === 'FALSE' || r.Q1_correct === false).length / total * 100;
+  const q3fail = rows.filter(r => r.Q3_correct === 'FALSE' || r.Q3_correct === false).length / total * 100;
+
+  if (chartFail) chartFail.destroy();
+  chartFail = new Chart(document.getElementById('chart-fail'), {
+    type: 'bar',
+    data: {
+      labels: ['Q1 — Active listening', 'Q3 — Step ordering'],
+      datasets: [{ data: [q1fail, q3fail], backgroundColor: ['#f0997b','#AFA9EC'], borderRadius: 6, borderSkipped: false }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#e2e0d8' } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+
+  // By department
+  const depts = groupBy(rows, 'Department');
+  const deptLabels = Object.keys(depts);
+  const deptAvgs = deptLabels.map(d => avg_(depts[d]));
+
+  if (chartDept) chartDept.destroy();
+  chartDept = new Chart(document.getElementById('chart-dept'), {
+    type: 'bar',
+    data: {
+      labels: deptLabels,
+      datasets: [{ data: deptAvgs, backgroundColor: '#4a3fd4cc', borderRadius: 6, borderSkipped: false }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#e2e0d8' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Company table
+  const companies = groupBy(rows, 'Company');
+  document.getElementById('tbl-company').innerHTML = Object.keys(companies).map(c => {
+    const a = avg_(companies[c]);
+    return `<tr><td>${c}</td><td><span class="pill ${scoreColor(a)}">${pct(a)}</span></td><td>${companies[c].length}</td></tr>`;
+  }).join('');
+
+  // Dept table
+  document.getElementById('tbl-dept').innerHTML = deptLabels.map((d, i) => {
+    const a = deptAvgs[i];
+    return `<tr><td>${d}</td><td><span class="pill ${scoreColor(a)}">${pct(a)}</span></td><td>${depts[d].length}</td></tr>`;
+  }).join('');
+
+  // Individual table (sorted by score desc)
+  const sorted = [...rows].sort((a, b) => b._score - a._score);
+  document.getElementById('tbl-individual').innerHTML = sorted.map(r => `
+    <tr>
+      <td>${r.Name||'—'}</td>
+      <td>${r.Company||'—'}</td>
+      <td>${r.Department||'—'}</td>
+      <td>${r.Date||'—'}</td>
+      <td><span class="pill ${scoreColor(r._score)}">${pct(r._score)}</span></td>
+      <td>${r.Q1_correct==='TRUE'||r.Q1_correct===true ? '✓' : '✗'}</td>
+      <td>${r.Q3_correct==='TRUE'||r.Q3_correct===true ? '✓' : '✗'}</td>
+    </tr>
+  `).join('');
+}
+
+function groupBy(arr, key) {
+  return arr.reduce((acc, r) => { const k = r[key]||'Unknown'; (acc[k]=acc[k]||[]).push(r); return acc; }, {});
+}
+function avg_(arr) { return arr.reduce((s, r) => s + r._score, 0) / arr.length; }
+
+loadData();
+</script>
+</body>
+</html>
