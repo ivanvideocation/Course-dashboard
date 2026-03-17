@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HMS Quiz 1</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#f9f6e8;--card:#fff;--border:#e2d98f;--text:#1a1a18;--muted:#6b6a64;
+    --accent:#c9a800;--accent-dark:#8a7200;--accent-light:#fff8d6;
+    --success:#1a7a4a;--success-bg:#e6f5ee;--error:#b93535;--error-bg:#fceaea;--radius:12px;
+  }
+  body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:24px 16px}
+  .shell{max-width:800px;margin:0 auto}
+
+  /* Lang */
+  .lang-bar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:20px}
+  .lang-btn{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:transparent;font-size:13px;font-weight:500;cursor:pointer;color:var(--muted);transition:all .15s}
+  .lang-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  /* Steps nav */
+  .steps{display:flex;align-items:center;gap:0;margin-bottom:28px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 24px;overflow-x:auto}
+  .step{display:flex;align-items:center;gap:8px;white-space:nowrap}
+  .step-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--muted);background:var(--bg);flex-shrink:0;transition:all .3s}
+  .step-dot.active{border-color:var(--accent);background:var(--accent);color:#fff}
+  .step-dot.done{border-color:var(--success);background:var(--success);color:#fff}
+  .step-label{font-size:13px;color:var(--muted);transition:color .3s}
+  .step-label.active{color:var(--accent-dark);font-weight:500}
+  .step-label.done{color:var(--success)}
+  .step-sep{width:32px;height:2px;background:var(--border);margin:0 4px;flex-shrink:0;transition:background .3s}
+  .step-sep.done{background:var(--success)}
+
+  /* Intro */
+  #intro{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:40px 36px;max-width:480px;margin:0 auto}
+  #intro h1{font-size:20px;font-weight:600;margin-bottom:8px}
+  #intro p{font-size:14px;color:var(--muted);margin-bottom:28px;line-height:1.6}
+  .field{margin-bottom:16px}
+  .field label{font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:6px}
+  .field input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:15px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s}
+  .field input:focus{border-color:var(--accent);background:#fff}
+  .field input.err{border-color:var(--error)}
+  .intro-err{font-size:13px;color:var(--error);margin-bottom:12px;min-height:18px}
+
+  /* Lesson */
+  .lesson-header{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px 32px;margin-bottom:20px}
+  .lesson-header h2{font-size:22px;font-weight:700;margin-bottom:6px}
+  .lesson-header p{font-size:14px;color:var(--muted)}
+  .lesson-num{font-size:12px;font-weight:600;color:var(--accent-dark);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+
+  .lesson-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px 32px;margin-bottom:16px;line-height:1.8}
+  .lesson-card h3{font-size:17px;font-weight:600;margin-bottom:14px;color:var(--accent-dark)}
+  .lesson-card p{font-size:15px;margin-bottom:14px;color:var(--text)}
+  .lesson-card ul{padding-left:20px;margin-bottom:14px}
+  .lesson-card ul li{font-size:15px;margin-bottom:8px}
+  .lesson-card strong{font-weight:600}
+
+  .highlight{background:var(--accent-light);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;padding:16px 20px;margin:16px 0;font-size:15px;color:var(--accent-dark);font-style:italic}
+  .info-box{background:#f0f7ff;border:1px solid #b5d4f4;border-radius:8px;padding:16px 20px;margin:16px 0;font-size:14px;color:#185fa5}
+  .info-box strong{display:block;margin-bottom:6px;font-size:15px}
+  .law-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  .law-table th{text-align:left;padding:10px 14px;background:var(--accent-light);border:1px solid var(--border);font-weight:600;color:var(--accent-dark)}
+  .law-table td{padding:10px 14px;border:1px solid var(--border);vertical-align:top}
+  .law-table tr:nth-child(even) td{background:#fffef5}
+
+  /* Quiz */
+  .quiz-header{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px 32px;margin-bottom:24px}
+  .quiz-header h2{font-size:20px;font-weight:600;margin-bottom:6px}
+  .quiz-header p{font-size:14px;color:var(--muted)}
+  .meta{display:flex;gap:16px;margin-top:14px;flex-wrap:wrap;align-items:center}
+  .badge{background:var(--accent-light);color:var(--accent-dark);font-size:12px;font-weight:500;padding:3px 10px;border-radius:20px;border:1px solid var(--border)}
+  .user-pill{background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:13px;color:var(--muted)}
+  .progress-bar{height:4px;background:var(--border);border-radius:2px;margin-bottom:24px}
+  .progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s ease}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px 32px;margin-bottom:20px}
+  .q-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}
+  .q-num{font-size:12px;font-weight:600;color:var(--accent-dark);text-transform:uppercase;letter-spacing:.05em}
+  .q-type{font-size:11px;color:var(--muted);background:var(--bg);padding:3px 8px;border-radius:6px;border:1px solid var(--border)}
+  .q-text{font-size:16px;font-weight:500;line-height:1.5;margin-bottom:20px}
+  .options{display:flex;flex-direction:column;gap:10px}
+  .option{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;user-select:none}
+  .option:hover:not(.disabled){border-color:var(--accent);background:var(--accent-light)}
+  .option.selected{border-color:var(--accent);background:var(--accent-light)}
+  .option.correct{border-color:var(--success);background:var(--success-bg)}
+  .option.wrong{border-color:var(--error);background:var(--error-bg)}
+  .option.disabled{cursor:default}
+  .opt-circle{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px}
+  .option.selected .opt-circle{border-color:var(--accent);background:var(--accent);color:#fff}
+  .option.correct .opt-circle{border-color:var(--success);background:var(--success);color:#fff}
+  .option.wrong .opt-circle{border-color:var(--error);background:var(--error);color:#fff}
+  .open-area{width:100%;min-height:100px;padding:14px 16px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit;color:var(--text);background:var(--bg);resize:vertical;line-height:1.6;outline:none;transition:border-color .15s}
+  .open-area:focus{border-color:var(--accent);background:#fff}
+  .char-count{font-size:12px;color:var(--muted);text-align:right;margin-top:6px}
+  .drag-zone{display:flex;flex-direction:column;gap:8px}
+  .drag-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;cursor:grab;user-select:none;transition:box-shadow .15s,opacity .15s}
+  .drag-item:active{cursor:grabbing}
+  .drag-item.dragging{opacity:.4}
+  .drag-item.over{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+  .drag-item.correct-pos{border-color:var(--success);background:var(--success-bg)}
+  .drag-item.wrong-pos{border-color:var(--error);background:var(--error-bg)}
+  .drag-handle{color:var(--muted);font-size:16px}
+  .drag-badge{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .feedback{margin-top:14px;padding:12px 16px;border-radius:8px;font-size:14px;line-height:1.5;display:none}
+  .feedback.show{display:block}
+  .feedback.ok{background:var(--success-bg);color:var(--success);border:1px solid #9dd5b8}
+  .feedback.ko{background:var(--error-bg);color:var(--error);border:1px solid #f0b5b5}
+  .feedback.info{background:var(--accent-light);color:var(--accent-dark);border:1px solid var(--border)}
+
+  /* Controls */
+  .controls{display:flex;justify-content:flex-end;gap:12px;margin-top:32px;flex-wrap:wrap}
+  .btn{padding:12px 24px;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover:not(:disabled){background:var(--accent-dark)}
+  .btn-outline{background:transparent;color:var(--accent-dark);border:1.5px solid var(--accent)}
+  .btn-outline:hover:not(:disabled){background:var(--accent-light)}
+  .btn-next{display:block;width:fit-content;margin:24px auto 0;padding:14px 32px;border-radius:10px;background:var(--accent);color:#fff;font-size:16px;font-weight:600;border:none;cursor:pointer;transition:background .15s}
+  .btn-next:hover{background:var(--accent-dark)}
+
+  /* Sending */
+  #sending{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:center;justify-content:center}
+  #sending.show{display:flex}
+  .sending-box{background:var(--card);border-radius:var(--radius);padding:36px 40px;text-align:center;max-width:320px;width:90%}
+  .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Results */
+  #results{display:none}
+  .results-header{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:36px 32px;text-align:center;margin-bottom:24px}
+  .score-circle{width:110px;height:110px;border-radius:50%;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:32px;font-weight:700;border:5px solid}
+  .score-circle.high{border-color:var(--success);color:var(--success);background:var(--success-bg)}
+  .score-circle.mid{border-color:#c67d10;color:#c67d10;background:#fdf3e0}
+  .score-circle.low{border-color:var(--error);color:var(--error);background:var(--error-bg)}
+  .score-label{font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+  .results-title{font-size:22px;font-weight:600;margin-bottom:8px}
+  .results-sub{font-size:15px;color:var(--muted)}
+  .sync-badge{display:inline-flex;align-items:center;gap:6px;margin-top:14px;padding:6px 14px;border-radius:20px;font-size:13px}
+  .sync-badge.ok{background:var(--success-bg);color:var(--success)}
+  .sync-badge.ko{background:var(--error-bg);color:var(--error)}
+  .results-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px}
+  .stat-card{background:var(--bg);border-radius:10px;padding:16px;text-align:center}
+  .stat-num{font-size:26px;font-weight:700}
+  .stat-label{font-size:13px;color:var(--muted);margin-top:4px}
+  .review-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px 28px;margin-bottom:12px}
+  .review-card h3{font-size:15px;font-weight:500;margin-bottom:10px}
+  .review-ans{font-size:14px;padding:8px 12px;border-radius:6px;margin-top:6px}
+  .review-ans.ok{background:var(--success-bg);color:var(--success)}
+  .review-ans.ko{background:var(--error-bg);color:var(--error)}
+  .review-ans.neutral{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
+  .review-correct{font-size:13px;color:var(--success);margin-top:6px}
+  .download-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+
+  @media(max-width:600px){
+    .lesson-card,.quiz-header,.card,#intro{padding:20px 18px}
+    .results-grid{grid-template-columns:1fr 1fr}
+    .steps{gap:4px;padding:12px 16px}
+    .step-label{display:none}
+    .step-sep{width:20px}
+  }
+</style>
+</head>
+<body>
+<div id="sending"><div class="sending-box"><div class="spinner"></div><p id="sending-txt">Lagrer...</p></div></div>
+<div class="shell">
+
+  <div class="lang-bar">
+    <button class="lang-btn active" onclick="setLang('no')">🇳🇴 Norsk</button>
+    <button class="lang-btn" onclick="setLang('en')">🇬🇧 English</button>
+    <button class="lang-btn" onclick="setLang('es')">🇪🇸 Español</button>
+  </div>
+
+  <!-- Steps -->
+  <div class="steps" id="steps-bar">
+    <div class="step"><div class="step-dot active" id="dot-0">1</div><span class="step-label active" id="lbl-0"></span></div>
+    <div class="step-sep" id="sep-0"></div>
+    <div class="step"><div class="step-dot" id="dot-1">2</div><span class="step-label" id="lbl-1"></span></div>
+    <div class="step-sep" id="sep-1"></div>
+    <div class="step"><div class="step-dot" id="dot-2">3</div><span class="step-label" id="lbl-2"></span></div>
+    <div class="step-sep" id="sep-2"></div>
+    <div class="step"><div class="step-dot" id="dot-3">4</div><span class="step-label" id="lbl-3"></span></div>
+    <div class="step-sep" id="sep-3"></div>
+    <div class="step"><div class="step-dot" id="dot-4">✓</div><span class="step-label" id="lbl-4"></span></div>
+  </div>
+
+  <!-- STEP 0: Intro -->
+  <div id="step-0">
+    <div id="intro">
+      <h1 id="intro-title"></h1>
+      <p id="intro-desc"></p>
+      <div class="field"><label id="lbl-name"></label><input type="text" id="inp-name" autocomplete="name"></div>
+      <div class="field"><label id="lbl-company"></label><input type="text" id="inp-company" autocomplete="organization"></div>
+      <div class="field"><label id="lbl-dept"></label><input type="text" id="inp-dept"></div>
+      <div class="intro-err" id="intro-err"></div>
+      <button class="btn btn-primary" style="width:100%" id="start-btn" onclick="goStep(1)"></button>
+    </div>
+  </div>
+
+  <!-- STEP 1: Lesson 1 -->
+  <div id="step-1" style="display:none">
+    <div class="lesson-header">
+      <div class="lesson-num" id="l1-num"></div>
+      <h2 id="l1-title"></h2>
+      <p id="l1-sub"></p>
+    </div>
+    <div id="l1-content"></div>
+    <button class="btn-next" id="l1-next" onclick="goStep(2)"></button>
+  </div>
+
+  <!-- STEP 2: Lesson 2 -->
+  <div id="step-2" style="display:none">
+    <div class="lesson-header">
+      <div class="lesson-num" id="l2-num"></div>
+      <h2 id="l2-title"></h2>
+      <p id="l2-sub"></p>
+    </div>
+    <div id="l2-content"></div>
+    <button class="btn-next" id="l2-next" onclick="goStep(3)"></button>
+  </div>
+
+  <!-- STEP 3: Quiz -->
+  <div id="step-3" style="display:none">
+    <div class="quiz-header">
+      <h2 id="quiz-title"></h2>
+      <p id="quiz-sub"></p>
+      <div class="meta">
+        <span class="badge" id="quiz-badge"></span>
+        <span class="meta-item" id="quiz-meta"></span>
+        <span class="user-pill" id="user-pill"></span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+    <div class="card"><div class="q-header"><span class="q-num" id="q1-num"></span><span class="q-type" id="q1-type"></span></div><p class="q-text" id="q1-text"></p><div class="options" id="opts-1"></div><div class="feedback" id="fb-1"></div></div>
+    <div class="card"><div class="q-header"><span class="q-num" id="q2-num"></span><span class="q-type" id="q2-type"></span></div><p class="q-text" id="q2-text"></p><textarea class="open-area" id="open-2" oninput="updateChar()"></textarea><div class="char-count" id="char-2"></div><div class="feedback info show" id="fb-2"></div></div>
+    <div class="card"><div class="q-header"><span class="q-num" id="q3-num"></span><span class="q-type" id="q3-type"></span></div><p class="q-text" id="q3-text"></p><div class="options" id="opts-3"></div><div class="feedback" id="fb-3"></div></div>
+    <div class="card"><div class="q-header"><span class="q-num" id="q4-num"></span><span class="q-type" id="q4-type"></span></div><p class="q-text" id="q4-text"></p><div class="drag-zone" id="drag-4"></div><div class="feedback" id="fb-4"></div></div>
+    <div class="card"><div class="q-header"><span class="q-num" id="q5-num"></span><span class="q-type" id="q5-type"></span></div><p class="q-text" id="q5-text"></p><textarea class="open-area" id="open-5" oninput="updateChar()"></textarea><div class="char-count" id="char-5"></div><div class="feedback info show" id="fb-5"></div></div>
+    <div class="controls">
+      <button class="btn btn-outline" id="check-btn" onclick="checkAll()"></button>
+      <button class="btn btn-primary" id="submit-btn" onclick="submitQuiz()"></button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Results -->
+  <div id="results">
+    <div class="results-header">
+      <div class="score-circle" id="score-circle"><span id="score-pct">—</span><span class="score-label" id="score-lbl"></span></div>
+      <div class="results-title" id="results-title"></div>
+      <div class="results-sub" id="results-sub"></div>
+      <div id="sync-badge-el"></div>
+      <div class="results-grid">
+        <div class="stat-card"><div class="stat-num" id="stat-ok" style="color:var(--success)">—</div><div class="stat-label" id="stat-ok-lbl"></div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-ko" style="color:var(--error)">—</div><div class="stat-label" id="stat-ko-lbl"></div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-open" style="color:var(--accent-dark)">—</div><div class="stat-label" id="stat-open-lbl"></div></div>
+      </div>
+    </div>
+    <div id="review-section"></div>
+    <div class="download-row">
+      <button class="btn btn-outline" id="retry-btn" onclick="restartQuiz()"></button>
+      <button class="btn btn-primary" id="pdf-btn" onclick="downloadPDF()"></button>
+    </div>
+  </div>
+
+</div>
+<script>
+const SHEET_URL='https://script.google.com/macros/s/AKfycbxZ6X21_PtyVyzchoNtFOmu_TDAKh6WCQ-EGI9XksltcQ34exnuRCY-0YYjjx0kheZ_lg/exec';
+
+const T={
+  no:{
+    steps:['Start','Leksjon 1','Leksjon 2','Quiz','Resultater'],
+    introTitle:'HMS for alle ansatte — Quiz 1',
+    introDesc:'Fyll inn informasjonen din for å starte. Du vil lese to leksjoner og deretter ta en kort quiz.',
+    lblName:'Fullt navn',lblCompany:'Bedrift',lblDept:'Avdeling',
+    startBtn:'Start →',introErrMsg:'Vennligst fyll inn alle feltene.',
+    l1Num:'LEKSJON 1',l1Title:'Din rolle er viktigere enn du tror',l1Sub:'Helse, Miljø og Sikkerhet starter med deg.',
+    l1Next:'Fortsett til Leksjon 2 →',
+    l1Content:`
+      <div class="lesson-card">
+        <h3>Hvorfor HMS?</h3>
+        <p>HMS-opplæring for alle skulle vært alfa og omega med jevne mellomrom. Enkelt og greit fordi HMS er grunnmuren som må være på plass for at både du og jeg skal ha en god dag på jobben.</p>
+        <p>Forstår vi HMS, luker vi automatisk bort misforståelser, unødvendig stress eller situasjoner som er risikofylte, både fysisk og psykisk.</p>
+        <div class="highlight">HMS er ikke bare lederens ansvar — det er alles ansvar.</div>
+      </div>
+      <div class="lesson-card">
+        <h3>Hva er en god kollega?</h3>
+        <p>Tenk over hva du verdsetter i en god kollega. Kanskje punktlighet, ærlighet, hjelpsomhet? Uansett hva du svarer, har du akkurat definert noe av det viktigste i HMS-arbeidet: vi er ulike, og nettopp det er noe av det viktigste å huske.</p>
+        <p>Din atferd påvirker arbeidsmiljøet for alle rundt deg. En god rollemodell:</p>
+        <ul>
+          <li>Følger HMS-rutiner og bruker verneutstyr</li>
+          <li>Melder fra om farlige situasjoner</li>
+          <li>Bidrar til et positivt og inkluderende arbeidsmiljø</li>
+          <li>Støtter kollegaer og tar ansvar for fellesskapet</li>
+        </ul>
+        <div class="highlight">Å være en god rollemodell i HMS-arbeidet er noe av det viktigste du kan gjøre for din arbeidsplass.</div>
+      </div>
+      <div class="lesson-card">
+        <h3>Arbeidsmiljømodellen</h3>
+        <p>Arbeidstilsynet har utarbeidet en modell som samler og synliggjør kravene arbeidsmiljøloven stiller. Modellen sorterer arbeidsmiljøet i tre hovedgrupper:</p>
+        <ul>
+          <li><strong>Arbeidsbetingelsene</strong> — fysiske, ergonomiske, organisatoriske, kjemiske/biologiske og psykososiale faktorer</li>
+          <li><strong>Det systematiske arbeidsmiljøarbeidet</strong> — organisering, opplæring og gjennomføring</li>
+          <li><strong>Andre komponenter</strong> — arbeidstakernes beskrivelser, vurderinger og opplevelser</li>
+        </ul>
+        <p>Virksomhetens arbeidsmiljø påvirkes også av samfunnsmessige forhold som endringer i lov- og avtaleverk, arbeidsliv og arbeidsmarked.</p>
+      </div>`,
+    l2Num:'LEKSJON 2',l2Title:'HMS-regelverket',l2Sub:'Oversikt over de viktigste lovene og forskriftene.',
+    l2Next:'Fortsett til quizen →',
+    l2Content:`
+      <div class="lesson-card">
+        <h3>De viktigste lovene og forskriftene</h3>
+        <p>Under følger de viktigste lovene og forskriftene i HMS-arbeidet. Du finner alle disse på <strong>lovdata.no</strong>.</p>
+        <table class="law-table">
+          <tr><th>Lov / Forskrift</th><th>Hva den handler om</th></tr>
+          <tr><td><strong>Arbeidsmiljøloven (AML)</strong></td><td>Grunnmuren i arbeidsmiljøarbeidet. Lov om arbeidsmiljø, arbeidstid og stillingsvern.</td></tr>
+          <tr><td><strong>Internkontrollforskriften</strong></td><td>Krav til oppbygging og dokumentasjon av HMS/internkontrollsystemet.</td></tr>
+          <tr><td><strong>Forskrift om organisering, ledelse og medvirkning</strong></td><td>Gjelder organisering, tilrettelegging og ledelse av arbeidet.</td></tr>
+          <tr><td><strong>Arbeidsplassforskriften</strong></td><td>Gjelder faste og midlertidige arbeidsplasser og arbeidslokaler.</td></tr>
+          <tr><td><strong>Forskrift om utførelse av arbeid</strong></td><td>Gjelder bruk av arbeidsutstyr og tekniske krav.</td></tr>
+          <tr><td><strong>Forskrift om tiltaks- og grenseverdier</strong></td><td>Gjelder eksponering for fysiske, kjemiske eller biologiske faktorer.</td></tr>
+        </table>
+      </div>
+      <div class="lesson-card">
+        <h3>De 9 første kapitlene i AML</h3>
+        <p>Det er de 9 første kapitlene i Arbeidsmiljøloven som omhandler HMS og rollene i HMS-arbeidet:</p>
+        <ul>
+          <li><strong>Kap. 1</strong> — Innledende bestemmelser</li>
+          <li><strong>Kap. 2</strong> — Arbeidsgivers og arbeidstakers plikter</li>
+          <li><strong>Kap. 2a</strong> — Varsling</li>
+          <li><strong>Kap. 3</strong> — Virkemidler i arbeidsmiljøarbeidet</li>
+          <li><strong>Kap. 4</strong> — Krav til arbeidsmiljøet</li>
+          <li><strong>Kap. 5</strong> — Registrerings- og meldeplikt</li>
+          <li><strong>Kap. 6</strong> — Verneombud</li>
+          <li><strong>Kap. 7</strong> — Arbeidsmiljøutvalg</li>
+          <li><strong>Kap. 8</strong> — Informasjon og drøfting</li>
+          <li><strong>Kap. 9</strong> — Kontrolltiltak i virksomheten</li>
+        </ul>
+        <div class="highlight">Arbeidsmiljøloven regulerer forholdet mellom arbeidstakers behov og arbeidsgivers styringsrett. Det er en lov om forebyggende helsearbeid på arbeidsplassen.</div>
+      </div>
+      <div class="lesson-card">
+        <h3>Nyttige ressurser</h3>
+        <div class="info-box"><strong>Arbeidstilsynet</strong>Har mye god informasjon tilgjengelig. Finn HMS-regelverket på engelsk: arbeidstilsynet.no/en</div>
+        <div class="info-box"><strong>AKAN</strong>Praktiske tips til forebygging og håndtering av problematisk bruk av alkohol, narkotika og legemidler. akan.no</div>
+        <div class="info-box"><strong>En bra dag på jobb (STAMI)</strong>Gratis forskningsbasert verktøy som gjør at ledere og ansatte kan forbedre arbeidsmiljøet sammen. enbradagpajobb.no</div>
+      </div>`,
+    quizTitle:'Quiz 1 — Din rolle + HMS-regelverket',
+    quizSub:'Test kunnskapen din fra de to leksjonene du nettopp leste.',
+    quizBadge:'5 spørsmål',quizMeta:'⏱ Ca. 10 min',
+    checkBtn:'Se delvis retting',submitBtn:'Fullfør og se resultater',
+    retryBtn:'⟳ Prøv igjen',pdfBtn:'⬇ Last ned PDF-rapport',
+    scoreLbl:'poeng',synced:'✓ Resultater lagret i Google Sheets',notSynced:'⚠ Kunne ikke lagre — last ned PDF',
+    resultHigh:'Bra jobbet!',resultMid:'Du kan forbedre deg',resultLow:'Gå gjennom leksjonene igjen',
+    resultSub:'Resultat basert på automatisk rettede spørsmål',
+    statOk:'Riktige',statKo:'Feil',statOpen:'Til vurdering',
+    openInfo:'Dette svaret vil bli vurdert av din instruktør. Det finnes ikke et feil svar — refleksjon er det viktige.',
+    charCount:(n)=>`${n} / 300 anbefalte tegn`,
+    q:[
+      {num:'Spørsmål 1 av 5',type:'Flervalg',text:'Hva er HMS en forkortelse for?',opts:['Helse, Miljø og Sikkerhet','Hygiene, Marked og Sikring','Helse, Miljø og Styring','Helse, Medvirkning og Sikkerhet'],correct:0,fbOk:'✓ Riktig! HMS står for Helse, Miljø og Sikkerhet.',fbKo:'✗ Feil. HMS er forkortelsen for Helse, Miljø og Sikkerhet — grunnmuren i alt arbeidsmiljøarbeid.'},
+      {num:'Spørsmål 2 av 5',type:'Åpent svar',text:'Hva mener du er en god kollega? Skriv tre stikkord og forklar kort hvordan du selv kan bidra til et godt HMS-arbeid på din arbeidsplass.'},
+      {num:'Spørsmål 3 av 5',type:'Flervalg',text:'Hvilken lov er den viktigste grunnmuren i HMS-arbeidet i Norge?',opts:['Forvaltningsloven','Arbeidsmiljøloven','Internkontrollforskriften','Folketrygdloven'],correct:1,fbOk:'✓ Riktig! Arbeidsmiljøloven (AML) er den viktigste loven i HMS-arbeidet.',fbKo:'✗ Feil. Det er Arbeidsmiljøloven (AML) — lov om arbeidsmiljø, arbeidstid og stillingsvern mv.'},
+      {num:'Spørsmål 4 av 5',type:'Sorter i riktig rekkefølge',text:'Sorter disse HMS-lovene fra den mest grunnleggende til de mer spesifikke:',items:[{id:'2',text:'Internkontrollforskriften'},{id:'1',text:'Arbeidsmiljøloven (AML)'},{id:'4',text:'Forskrift om utførelse av arbeid'},{id:'3',text:'Arbeidsplassforskriften'}],correct:['1','2','3','4'],fbOk:'✓ Riktig rekkefølge!',fbKo:'✗ Ikke helt riktig. Riktig rekkefølge: (1) AML, (2) Internkontrollforskriften, (3) Arbeidsplassforskriften, (4) Forskrift om utførelse av arbeid.'},
+      {num:'Spørsmål 5 av 5',type:'Åpent svar',text:'Hvorfor er det viktig at alle ansatte kjenner til HMS-regelverket — ikke bare ledelsen? Gi gjerne et konkret eksempel.'},
+    ]
+  },
+  en:{
+    steps:['Start','Lesson 1','Lesson 2','Quiz','Results'],
+    introTitle:'HSE for all employees — Quiz 1',
+    introDesc:'Fill in your details to start. You will read two lessons and then take a short quiz.',
+    lblName:'Full name',lblCompany:'Company',lblDept:'Department',
+    startBtn:'Start →',introErrMsg:'Please fill in all fields.',
+    l1Num:'LESSON 1',l1Title:'Your role is more important than you think',l1Sub:'Health, Safety and Environment starts with you.',
+    l1Next:'Continue to Lesson 2 →',
+    l1Content:`
+      <div class="lesson-card">
+        <h3>Why HSE?</h3>
+        <p>HSE training for everyone should be a top priority on a regular basis. Simply because HSE is the foundation that needs to be in place for both you and me to have a good day at work.</p>
+        <p>When we understand HSE, we automatically eliminate misunderstandings, unnecessary stress, and situations that are risky — both physically and mentally.</p>
+        <div class="highlight">HSE is not just the responsibility of management — it is everyone's responsibility.</div>
+      </div>
+      <div class="lesson-card">
+        <h3>What makes a good colleague?</h3>
+        <p>Think about what you value in a good colleague. Whatever you answer, you have just defined something central to HSE work: we are all different, and that is one of the most important things to remember.</p>
+        <p>Your behaviour affects the working environment for everyone around you. A good role model:</p>
+        <ul>
+          <li>Follows HSE routines and uses protective equipment</li>
+          <li>Reports hazardous situations</li>
+          <li>Contributes to a positive and inclusive working environment</li>
+          <li>Supports colleagues and takes responsibility for the community</li>
+        </ul>
+        <div class="highlight">Being a good role model in HSE work is one of the most important things you can do for your workplace.</div>
+      </div>
+      <div class="lesson-card">
+        <h3>The working environment model</h3>
+        <p>The Norwegian Labour Inspection Authority has developed a model that gathers and visualises the requirements of the Working Environment Act. The model sorts the working environment into three main groups:</p>
+        <ul>
+          <li><strong>Working conditions</strong> — physical, ergonomic, organisational, chemical/biological and psychosocial factors</li>
+          <li><strong>Systematic HSE work</strong> — organisation, training and implementation</li>
+          <li><strong>Other components</strong> — employees' descriptions, assessments and experiences</li>
+        </ul>
+      </div>`,
+    l2Num:'LESSON 2',l2Title:'The HSE regulatory framework',l2Sub:'Overview of the most important laws and regulations.',
+    l2Next:'Continue to the quiz →',
+    l2Content:`
+      <div class="lesson-card">
+        <h3>The most important laws and regulations</h3>
+        <p>Below are the most important laws and regulations in HSE work. You can find all of these at <strong>lovdata.no</strong>.</p>
+        <table class="law-table">
+          <tr><th>Law / Regulation</th><th>What it covers</th></tr>
+          <tr><td><strong>Working Environment Act (AML)</strong></td><td>The foundation of working environment work. Covers working environment, working hours and employment protection.</td></tr>
+          <tr><td><strong>Internal Control Regulation</strong></td><td>Requirements for building and documenting the HSE/internal control system.</td></tr>
+          <tr><td><strong>Regulation on Organisation, Leadership and Participation</strong></td><td>Covers organisation, facilitation and management of work.</td></tr>
+          <tr><td><strong>Workplace Regulation</strong></td><td>Applies to permanent and temporary workplaces and work premises.</td></tr>
+          <tr><td><strong>Regulation on Performance of Work</strong></td><td>Covers use of work equipment and technical requirements.</td></tr>
+          <tr><td><strong>Regulation on Threshold Values</strong></td><td>Covers exposure to physical, chemical or biological factors.</td></tr>
+        </table>
+      </div>
+      <div class="lesson-card">
+        <h3>The first 9 chapters of the Working Environment Act</h3>
+        <p>The first 9 chapters of the Act cover HSE and the roles in HSE work:</p>
+        <ul>
+          <li><strong>Ch. 1</strong> — Introductory provisions</li>
+          <li><strong>Ch. 2</strong> — Duties of employer and employee</li>
+          <li><strong>Ch. 2a</strong> — Whistleblowing</li>
+          <li><strong>Ch. 3</strong> — Instruments in working environment work</li>
+          <li><strong>Ch. 4</strong> — Requirements for the working environment</li>
+          <li><strong>Ch. 5</strong> — Registration and notification obligations</li>
+          <li><strong>Ch. 6</strong> — Safety representative</li>
+          <li><strong>Ch. 7</strong> — Working environment committee</li>
+          <li><strong>Ch. 8</strong> — Information and consultation</li>
+          <li><strong>Ch. 9</strong> — Control measures in the enterprise</li>
+        </ul>
+        <div class="highlight">The Working Environment Act regulates the relationship between the employee's needs and the employer's right to manage. It is a law on preventive health work in the workplace.</div>
+      </div>`,
+    quizTitle:'Quiz 1 — Your role + HSE regulations',
+    quizSub:'Test your knowledge from the two lessons you just read.',
+    quizBadge:'5 questions',quizMeta:'⏱ Approx. 10 min',
+    checkBtn:'Check answers',submitBtn:'Finish and see results',
+    retryBtn:'⟳ Retry',pdfBtn:'⬇ Download PDF report',
+    scoreLbl:'score',synced:'✓ Results saved to Google Sheets',notSynced:'⚠ Could not save — download PDF',
+    resultHigh:'Great work!',resultMid:'Room to improve',resultLow:'Review the lessons again',
+    resultSub:'Score based on auto-graded questions',
+    statOk:'Correct',statKo:'Incorrect',statOpen:'For review',
+    openInfo:'This response will be reviewed by your trainer. There is no wrong answer — reflection is what matters.',
+    charCount:(n)=>`${n} / 300 recommended characters`,
+    q:[
+      {num:'Question 1 of 5',type:'Multiple choice',text:'What does HMS stand for in Norwegian?',opts:['Helse, Miljø og Sikkerhet (Health, Environment and Safety)','Hygiene, Market and Security','Health, Management and Safety','Health, Participation and Safety'],correct:0,fbOk:'✓ Correct! HMS stands for Helse, Miljø og Sikkerhet.',fbKo:'✗ Incorrect. HMS stands for Helse, Miljø og Sikkerhet — Health, Environment and Safety.'},
+      {num:'Question 2 of 5',type:'Open response',text:'What does being a good colleague mean to you? Write three keywords and briefly explain how you can personally contribute to good HSE work at your workplace.'},
+      {num:'Question 3 of 5',type:'Multiple choice',text:'Which law is the most important foundation for HSE work in Norway?',opts:['The Public Administration Act','The Working Environment Act (AML)','The Internal Control Regulation','The National Insurance Act'],correct:1,fbOk:'✓ Correct! The Working Environment Act (AML) is the cornerstone of HSE legislation.',fbKo:'✗ Incorrect. It is the Working Environment Act (Arbeidsmiljøloven).'},
+      {num:'Question 4 of 5',type:'Order the steps',text:'Sort these HSE laws from the most fundamental to the most specific:',items:[{id:'2',text:'Internal Control Regulation'},{id:'1',text:'Working Environment Act (AML)'},{id:'4',text:'Regulation on Performance of Work'},{id:'3',text:'Workplace Regulation'}],correct:['1','2','3','4'],fbOk:'✓ Correct order!',fbKo:'✗ Not quite. Correct: (1) AML, (2) Internal Control Regulation, (3) Workplace Regulation, (4) Regulation on Performance of Work.'},
+      {num:'Question 5 of 5',type:'Open response',text:'Why is it important that all employees — not just management — know the HSE regulations? Give a concrete example if possible.'},
+    ]
+  },
+  es:{
+    steps:['Inicio','Lección 1','Lección 2','Quiz','Resultados'],
+    introTitle:'HMS para todos los empleados — Quiz 1',
+    introDesc:'Completa tus datos para empezar. Leerás dos lecciones y luego harás un breve quiz.',
+    lblName:'Nombre completo',lblCompany:'Empresa',lblDept:'Departamento',
+    startBtn:'Empezar →',introErrMsg:'Por favor, rellena todos los campos.',
+    l1Num:'LECCIÓN 1',l1Title:'Tu rol es más importante de lo que crees',l1Sub:'La salud, el medio ambiente y la seguridad empiezan contigo.',
+    l1Next:'Continuar a Lección 2 →',
+    l1Content:`
+      <div class="lesson-card">
+        <h3>¿Por qué HMS?</h3>
+        <p>La formación en HMS para todos debería ser una prioridad constante. Sencillamente porque HMS es la base que debe estar en su lugar para que tanto tú como yo tengamos un buen día en el trabajo.</p>
+        <p>Cuando entendemos HMS, eliminamos automáticamente malentendidos, estrés innecesario y situaciones de riesgo, tanto físico como psíquico.</p>
+        <div class="highlight">HMS no es solo responsabilidad de la dirección — es responsabilidad de todos.</div>
+      </div>
+      <div class="lesson-card">
+        <h3>¿Qué es un buen compañero?</h3>
+        <p>Piensa en lo que valoras en un buen compañero. Lo que respondas define algo central en el trabajo de HMS: somos diferentes, y eso es precisamente una de las cosas más importantes a recordar.</p>
+        <p>Tu comportamiento afecta el entorno de trabajo de todos los que te rodean. Un buen modelo a seguir:</p>
+        <ul>
+          <li>Sigue las rutinas de HMS y usa equipos de protección</li>
+          <li>Notifica situaciones peligrosas</li>
+          <li>Contribuye a un entorno de trabajo positivo e inclusivo</li>
+          <li>Apoya a los compañeros y asume responsabilidad colectiva</li>
+        </ul>
+        <div class="highlight">Ser un buen modelo a seguir en HMS es una de las cosas más importantes que puedes hacer por tu lugar de trabajo.</div>
+      </div>`,
+    l2Num:'LECCIÓN 2',l2Title:'La normativa HMS',l2Sub:'Resumen de las leyes y reglamentos más importantes.',
+    l2Next:'Continuar al quiz →',
+    l2Content:`
+      <div class="lesson-card">
+        <h3>Las leyes y reglamentos más importantes</h3>
+        <table class="law-table">
+          <tr><th>Ley / Reglamento</th><th>De qué trata</th></tr>
+          <tr><td><strong>Ley del Entorno Laboral (AML)</strong></td><td>La base de todo el trabajo de HMS. Cubre el entorno laboral, el tiempo de trabajo y la protección del empleo.</td></tr>
+          <tr><td><strong>Reglamento de Control Interno</strong></td><td>Requisitos para construir y documentar el sistema HMS/control interno.</td></tr>
+          <tr><td><strong>Reglamento del lugar de trabajo</strong></td><td>Aplica a lugares de trabajo fijos y temporales.</td></tr>
+          <tr><td><strong>Reglamento sobre ejecución del trabajo</strong></td><td>Cubre el uso de equipos de trabajo y requisitos técnicos.</td></tr>
+        </table>
+      </div>
+      <div class="lesson-card">
+        <h3>Los 9 primeros capítulos de la AML</h3>
+        <ul>
+          <li><strong>Cap. 1</strong> — Disposiciones introductorias</li>
+          <li><strong>Cap. 2</strong> — Obligaciones del empleador y el empleado</li>
+          <li><strong>Cap. 2a</strong> — Denuncia de irregularidades</li>
+          <li><strong>Cap. 3</strong> — Instrumentos en el trabajo HMS</li>
+          <li><strong>Cap. 4</strong> — Requisitos del entorno laboral</li>
+          <li><strong>Cap. 6</strong> — Delegado de seguridad</li>
+          <li><strong>Cap. 7</strong> — Comité de medio ambiente laboral</li>
+          <li><strong>Cap. 9</strong> — Medidas de control en la empresa</li>
+        </ul>
+        <div class="highlight">La Ley del Entorno Laboral regula la relación entre las necesidades del empleado y el derecho de gestión del empleador.</div>
+      </div>`,
+    quizTitle:'Quiz 1 — Tu rol + Normativa HMS',
+    quizSub:'Pon a prueba lo aprendido en las dos lecciones.',
+    quizBadge:'5 preguntas',quizMeta:'⏱ Aprox. 10 min',
+    checkBtn:'Comprobar respuestas',submitBtn:'Finalizar y ver resultados',
+    retryBtn:'⟳ Reintentar',pdfBtn:'⬇ Descargar PDF',
+    scoreLbl:'puntos',synced:'✓ Resultados guardados en Google Sheets',notSynced:'⚠ No se pudo guardar — descarga el PDF',
+    resultHigh:'¡Buen trabajo!',resultMid:'Puedes mejorar',resultLow:'Repasa las lecciones',
+    resultSub:'Resultado sobre las preguntas autocorregibles',
+    statOk:'Correctas',statKo:'Incorrectas',statOpen:'Para revisar',
+    openInfo:'Esta respuesta será revisada por tu formador. No hay respuesta incorrecta — lo importante es la reflexión.',
+    charCount:(n)=>`${n} / 300 caracteres recomendados`,
+    q:[
+      {num:'Pregunta 1 de 5',type:'Opción múltiple',text:'¿Qué significa HMS en noruego?',opts:['Helse, Miljø og Sikkerhet (Salud, Medio Ambiente y Seguridad)','Higiene, Mercado y Seguridad','Salud, Gestión y Seguridad','Salud, Participación y Seguridad'],correct:0,fbOk:'✓ ¡Correcto! HMS significa Helse, Miljø og Sikkerhet.',fbKo:'✗ Incorrecto. HMS significa Helse, Miljø og Sikkerhet — Salud, Medio Ambiente y Seguridad.'},
+      {num:'Pregunta 2 de 5',type:'Respuesta abierta',text:'¿Qué significa para ti ser un buen compañero? Escribe tres palabras clave y explica brevemente cómo puedes contribuir al HMS en tu lugar de trabajo.'},
+      {num:'Pregunta 3 de 5',type:'Opción múltiple',text:'¿Cuál es la ley más importante en materia de HMS en Noruega?',opts:['La Ley de Administración Pública','La Ley del Entorno Laboral (AML)','El Reglamento de Control Interno','La Ley de Seguridad Social'],correct:1,fbOk:'✓ ¡Correcto! La Ley del Entorno Laboral es la base del HMS en Noruega.',fbKo:'✗ Incorrecto. Es la Ley del Entorno Laboral (Arbeidsmiljøloven).'},
+      {num:'Pregunta 4 de 5',type:'Ordenar pasos',text:'Ordena estas leyes HMS de más general a más específica:',items:[{id:'2',text:'Reglamento de Control Interno'},{id:'1',text:'Ley del Entorno Laboral (AML)'},{id:'4',text:'Reglamento sobre ejecución del trabajo'},{id:'3',text:'Reglamento del lugar de trabajo'}],correct:['1','2','3','4'],fbOk:'✓ ¡Orden correcto!',fbKo:'✗ No del todo. Orden correcto: (1) AML, (2) Control Interno, (3) Lugar de trabajo, (4) Ejecución del trabajo.'},
+      {num:'Pregunta 5 de 5',type:'Respuesta abierta',text:'¿Por qué es importante que todos los empleados conozcan la normativa HMS? Da un ejemplo concreto si es posible.'},
+    ]
+  }
+};
+
+let lang='no';
+let currentStep=0;
+let state={name:'',company:'',dept:'',q1:null,q2:'',q3:null,q4:[],q5:'',submitted:false};
+let dragSrc=null;
+
+function setLang(l){
+  lang=l;
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active',
+    (l==='no'&&b.textContent.includes('🇳🇴'))||(l==='en'&&b.textContent.includes('🇬🇧'))||(l==='es'&&b.textContent.includes('🇪🇸'))
+  ));
+  renderUI();
+}
+
+function renderUI(){
+  const t=T[lang];
+  // Steps labels
+  t.steps.forEach((s,i)=>{const el=document.getElementById(`lbl-${i}`);if(el)el.textContent=s;});
+  // Intro
+  document.getElementById('intro-title').textContent=t.introTitle;
+  document.getElementById('intro-desc').textContent=t.introDesc;
+  document.getElementById('lbl-name').textContent=t.lblName;
+  document.getElementById('lbl-company').textContent=t.lblCompany;
+  document.getElementById('lbl-dept').textContent=t.lblDept;
+  document.getElementById('start-btn').textContent=t.startBtn;
+  // Lessons
+  document.getElementById('l1-num').textContent=t.l1Num;
+  document.getElementById('l1-title').textContent=t.l1Title;
+  document.getElementById('l1-sub').textContent=t.l1Sub;
+  document.getElementById('l1-content').innerHTML=t.l1Content;
+  document.getElementById('l1-next').textContent=t.l1Next;
+  document.getElementById('l2-num').textContent=t.l2Num;
+  document.getElementById('l2-title').textContent=t.l2Title;
+  document.getElementById('l2-sub').textContent=t.l2Sub;
+  document.getElementById('l2-content').innerHTML=t.l2Content;
+  document.getElementById('l2-next').textContent=t.l2Next;
+  // Quiz
+  document.getElementById('quiz-title').textContent=t.quizTitle;
+  document.getElementById('quiz-sub').textContent=t.quizSub;
+  document.getElementById('quiz-badge').textContent=t.quizBadge;
+  document.getElementById('quiz-meta').textContent=t.quizMeta;
+  document.getElementById('check-btn').textContent=t.checkBtn;
+  document.getElementById('submit-btn').textContent=t.submitBtn;
+  document.getElementById('retry-btn').textContent=t.retryBtn;
+  document.getElementById('pdf-btn').textContent=t.pdfBtn;
+  document.getElementById('sending-txt').textContent=lang==='no'?'Lagrer...':lang==='en'?'Saving...':'Guardando...';
+  // Questions
+  t.q.forEach((q,i)=>{
+    const n=i+1;
+    const ne=document.getElementById(`q${n}-num`);if(ne)ne.textContent=q.num;
+    const te=document.getElementById(`q${n}-type`);if(te)te.textContent=q.type;
+    const tx=document.getElementById(`q${n}-text`);if(tx)tx.textContent=q.text;
+  });
+  renderOptions(1,t.q[0].opts);
+  renderOptions(3,t.q[2].opts);
+  renderDrag(t.q[3].items);
+  const fb2=document.getElementById('fb-2');if(fb2)fb2.textContent=t.openInfo;
+  const fb5=document.getElementById('fb-5');if(fb5)fb5.textContent=t.openInfo;
+  updateChar();
+  updateStepNav();
+}
+
+function updateStepNav(){
+  for(let i=0;i<5;i++){
+    const dot=document.getElementById(`dot-${i}`);
+    const lbl=document.getElementById(`lbl-${i}`);
+    const sep=document.getElementById(`sep-${i}`);
+    if(!dot)continue;
+    dot.className='step-dot'+(i<currentStep?' done':i===currentStep?' active':'');
+    if(lbl)lbl.className='step-label'+(i<currentStep?' done':i===currentStep?' active':'');
+    if(sep)sep.className='step-sep'+(i<currentStep?' done':'');
+  }
+}
+
+function goStep(n){
+  if(n===1){
+    const name=document.getElementById('inp-name').value.trim();
+    const company=document.getElementById('inp-company').value.trim();
+    const dept=document.getElementById('inp-dept').value.trim();
+    const err=document.getElementById('intro-err');
+    ['inp-name','inp-company','inp-dept'].forEach(id=>document.getElementById(id).classList.remove('err'));
+    if(!name||!company||!dept){
+      err.textContent=T[lang].introErrMsg;
+      if(!name)document.getElementById('inp-name').classList.add('err');
+      if(!company)document.getElementById('inp-company').classList.add('err');
+      if(!dept)document.getElementById('inp-dept').classList.add('err');
+      return;
+    }
+    state.name=name;state.company=company;state.dept=dept;
+    document.getElementById('user-pill').textContent=`${name} · ${company} · ${dept}`;
+  }
+  document.getElementById(`step-${currentStep}`).style.display='none';
+  currentStep=n;
+  const el=document.getElementById(`step-${n}`)||document.getElementById('results');
+  el.style.display='block';
+  updateStepNav();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function renderOptions(qId,opts){
+  const c=document.getElementById(`opts-${qId}`);if(!c)return;
+  const prev=state[`q${qId}`];
+  c.innerHTML=opts.map((o,i)=>`<div class="option${prev===i?' selected':''}" data-val="${i}" onclick="selectOption(this,${qId},${i})"><div class="opt-circle">${prev===i?'✓':''}</div><span class="opt-label">${o}</span></div>`).join('');
+}
+
+function renderDrag(items){
+  const zone=document.getElementById('drag-4');if(!zone)return;
+  zone.innerHTML=items.map(item=>`<div class="drag-item" draggable="true" data-id="${item.id}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragleave="dragLeave(event)"><span class="drag-handle">⠿</span><div class="drag-badge">?</div><span class="drag-text">${item.text}</span></div>`).join('');
+  updateDragBadges();
+}
+
+function selectOption(el,qId,val){
+  if(state.submitted)return;
+  document.querySelectorAll(`#opts-${qId} .option`).forEach(o=>{o.classList.remove('selected');o.querySelector('.opt-circle').textContent='';});
+  el.classList.add('selected');el.querySelector('.opt-circle').textContent='✓';
+  state[`q${qId}`]=val;updateProgress();
+}
+
+function updateChar(){
+  [2,5].forEach(n=>{
+    const ta=document.getElementById(`open-${n}`);if(!ta)return;
+    state[`q${n}`]=ta.value;
+    const cc=document.getElementById(`char-${n}`);if(cc)cc.textContent=T[lang].charCount(ta.value.length);
+  });
+  updateProgress();
+}
+
+function dragStart(e){dragSrc=e.currentTarget;e.currentTarget.classList.add('dragging');}
+function dragOver(e){e.preventDefault();e.currentTarget.classList.add('over');}
+function dragLeave(e){e.currentTarget.classList.remove('over');}
+function drop(e){
+  e.preventDefault();const target=e.currentTarget;target.classList.remove('over');
+  if(dragSrc&&dragSrc!==target){
+    const zone=document.getElementById('drag-4');
+    const items=[...zone.querySelectorAll('.drag-item')];
+    const si=items.indexOf(dragSrc),ti=items.indexOf(target);
+    if(si<ti)zone.insertBefore(dragSrc,target.nextSibling);else zone.insertBefore(dragSrc,target);
+    updateDragBadges();
+  }
+  if(dragSrc)dragSrc.classList.remove('dragging');dragSrc=null;updateProgress();
+}
+function updateDragBadges(){
+  const items=[...document.querySelectorAll('#drag-4 .drag-item')];
+  state.q4=items.map(i=>i.dataset.id);
+  items.forEach((item,i)=>{item.querySelector('.drag-badge').textContent=i+1;});
+}
+
+function updateProgress(){
+  let done=0;
+  if(state.q1!==null)done++;if(state.q2.length>10)done++;
+  if(state.q3!==null)done++;if(state.q4.length)done++;if(state.q5.length>10)done++;
+  document.getElementById('progress').style.width=(done/5*100)+'%';
+}
+
+function showFb(id,cls,txt){const el=document.getElementById(id);el.className=`feedback ${cls} show`;el.textContent=txt;}
+
+function checkAll(){
+  const t=T[lang];
+  const c1=state.q1===t.q[0].correct;
+  document.querySelectorAll('#opts-1 .option').forEach(o=>{
+    o.classList.add('disabled');const v=parseInt(o.dataset.val);
+    if(v===t.q[0].correct){o.classList.add('correct');o.querySelector('.opt-circle').textContent='✓';}
+    else if(o.classList.contains('selected')){o.classList.remove('selected');o.classList.add('wrong');o.querySelector('.opt-circle').textContent='✗';}
+  });
+  showFb('fb-1',c1?'ok':'ko',c1?t.q[0].fbOk:t.q[0].fbKo);
+  const c3=state.q3===t.q[2].correct;
+  document.querySelectorAll('#opts-3 .option').forEach(o=>{
+    o.classList.add('disabled');const v=parseInt(o.dataset.val);
+    if(v===t.q[2].correct){o.classList.add('correct');o.querySelector('.opt-circle').textContent='✓';}
+    else if(o.classList.contains('selected')){o.classList.remove('selected');o.classList.add('wrong');o.querySelector('.opt-circle').textContent='✗';}
+  });
+  showFb('fb-3',c3?'ok':'ko',c3?t.q[2].fbOk:t.q[2].fbKo);
+  const c4=JSON.stringify(t.q[3].correct)===JSON.stringify(state.q4);
+  document.querySelectorAll('#drag-4 .drag-item').forEach((item,i)=>{
+    item.setAttribute('draggable',false);
+    item.classList.add(item.dataset.id===t.q[3].correct[i]?'correct-pos':'wrong-pos');
+  });
+  showFb('fb-4',c4?'ok':'ko',c4?t.q[3].fbOk:t.q[3].fbKo);
+  return{c1,c3,c4};
+}
+
+async function submitQuiz(){
+  state.submitted=true;
+  const{c1,c3,c4}=checkAll();
+  const pct=Math.round([c1,c3,c4].filter(Boolean).length/3*100);
+  document.getElementById('sending').classList.add('show');
+  let synced=false;
+  try{
+    await fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:state.name,company:state.company,department:state.dept,
+        date:new Date().toISOString().slice(0,10),quiz:'Quiz 1',language:lang,
+        q1_answer:state.q1!==null?T[lang].q[0].opts[state.q1]:'—',q1_correct:c1,
+        q2_response:state.q2||'—',
+        q3_answer:state.q3!==null?T[lang].q[2].opts[state.q3]:'—',q3_correct:c3,
+        q4_order:state.q4.join('→'),q4_correct:c4,
+        q5_response:state.q5||'—',score_pct:pct})
+    });synced=true;
+  }catch(e){synced=false;}
+  document.getElementById('sending').classList.remove('show');
+  document.getElementById('step-3').style.display='none';
+  currentStep=4;updateStepNav();
+  const t=T[lang];
+  document.getElementById('results').style.display='block';
+  document.getElementById('score-pct').textContent=pct+'%';
+  document.getElementById('score-circle').className='score-circle '+(pct>=70?'high':pct>=40?'mid':'low');
+  document.getElementById('score-lbl').textContent=t.scoreLbl;
+  document.getElementById('results-title').textContent=pct>=70?t.resultHigh:pct>=40?t.resultMid:t.resultLow;
+  document.getElementById('results-sub').textContent=t.resultSub;
+  document.getElementById('sync-badge-el').innerHTML=`<span class="sync-badge ${synced?'ok':'ko'}">${synced?t.synced:t.notSynced}</span>`;
+  const auto=[c1,c3,c4].filter(Boolean).length;
+  document.getElementById('stat-ok').textContent=auto;
+  document.getElementById('stat-ko').textContent=3-auto;
+  document.getElementById('stat-open').textContent=[state.q2,state.q5].filter(s=>s.length>5).length;
+  document.getElementById('stat-ok-lbl').textContent=t.statOk;
+  document.getElementById('stat-ko-lbl').textContent=t.statKo;
+  document.getElementById('stat-open-lbl').textContent=t.statOpen;
+  document.getElementById('review-section').innerHTML=[
+    {title:t.q[0].num,ans:state.q1!==null?t.q[0].opts[state.q1]:'—',cls:c1?'ok':'ko',correct:!c1?t.q[0].fbKo.replace('✗ ',''):null},
+    {title:t.q[1].num,ans:state.q2.slice(0,200)||'—',cls:'neutral',correct:null},
+    {title:t.q[2].num,ans:state.q3!==null?t.q[2].opts[state.q3]:'—',cls:c3?'ok':'ko',correct:!c3?t.q[2].fbKo.replace('✗ ',''):null},
+    {title:t.q[3].num,ans:state.q4.join(' → '),cls:c4?'ok':'ko',correct:!c4?t.q[3].fbKo.replace('✗ ',''):null},
+    {title:t.q[4].num,ans:state.q5.slice(0,200)||'—',cls:'neutral',correct:null},
+  ].map(item=>`<div class="review-card"><h3>${item.title}</h3><div class="review-ans ${item.cls}">${item.ans}</div>${item.correct?`<div class="review-correct">${item.correct}</div>`:''}</div>`).join('');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function restartQuiz(){
+  state={...state,q1:null,q2:'',q3:null,q4:[],q5:'',submitted:false};
+  document.getElementById('results').style.display='none';
+  currentStep=3;
+  document.getElementById('step-3').style.display='block';
+  document.querySelectorAll('.feedback').forEach(f=>{f.className='feedback';f.textContent='';});
+  document.getElementById('fb-2').className='feedback info show';document.getElementById('fb-2').textContent=T[lang].openInfo;
+  document.getElementById('fb-5').className='feedback info show';document.getElementById('fb-5').textContent=T[lang].openInfo;
+  document.getElementById('open-2').value='';document.getElementById('open-5').value='';
+  document.getElementById('progress').style.width='0%';
+  renderOptions(1,T[lang].q[0].opts);renderOptions(3,T[lang].q[2].opts);
+  renderDrag(T[lang].q[3].items);updateChar();updateStepNav();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function downloadPDF(){
+  const{jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'a4'});
+  const W=doc.internal.pageSize.getWidth(),margin=48;let y=60;
+  const t=T[lang];
+  const c1=state.q1===t.q[0].correct,c3=state.q3===t.q[2].correct;
+  const c4=JSON.stringify(t.q[3].correct)===JSON.stringify(state.q4);
+  const pct=Math.round([c1,c3,c4].filter(Boolean).length/3*100);
+  doc.setFontSize(18);doc.setFont('helvetica','bold');doc.text(t.quizTitle,margin,y);y+=28;
+  doc.setFontSize(11);doc.setFont('helvetica','normal');doc.setTextColor(100);
+  doc.text(`${t.lblName}: ${state.name}  ·  ${t.lblCompany}: ${state.company}  ·  ${t.lblDept}: ${state.dept}`,margin,y);y+=16;
+  doc.text(`Date: ${new Date().toLocaleDateString()}  ·  Score: ${pct}%`,margin,y);y+=30;
+  doc.setTextColor(0);
+  [{q:t.q[0].num,a:`${state.q1!==null?t.q[0].opts[state.q1]:'—'} — ${c1?'✓':'✗'}`},
+   {q:t.q[1].num,a:state.q2||'—'},
+   {q:t.q[2].num,a:`${state.q3!==null?t.q[2].opts[state.q3]:'—'} — ${c3?'✓':'✗'}`},
+   {q:t.q[3].num,a:`${c3?'✓':'✗'} ${state.q4.join(' → ')}`},
+   {q:t.q[4].num,a:state.q5||'—'},
+  ].forEach(({q,a})=>{
+    doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text(q,margin,y);y+=18;
+    doc.setFontSize(11);doc.setFont('helvetica','normal');doc.setTextColor(60);
+    const lines=doc.splitTextToSize(a,W-margin*2);doc.text(lines,margin,y);
+    y+=lines.length*15+18;doc.setTextColor(0);if(y>740){doc.addPage();y=60;}
+  });
+  doc.save(`hms_quiz1_${state.name.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+renderUI();
+</script>
+</body>
+</html>
