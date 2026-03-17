@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course exercises</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f4f0; --card: #ffffff; --border: #e2e0d8;
+    --text: #1a1a18; --muted: #6b6a64; --accent: #4a3fd4;
+    --accent-light: #ede9ff; --success: #1a7a4a; --success-bg: #e6f5ee;
+    --error: #b93535; --error-bg: #fceaea; --radius: 12px;
+  }
+  body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px 16px; }
+  .shell { max-width: 780px; margin: 0 auto; }
+
+  /* Intro screen */
+  #intro { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 40px 36px; max-width: 480px; margin: 60px auto; }
+  #intro h1 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  #intro p { font-size: 14px; color: var(--muted); margin-bottom: 28px; line-height: 1.6; }
+  .field-group { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+  .field label { font-size: 13px; font-weight: 500; color: var(--muted); display: block; margin-bottom: 6px; }
+  .field input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 15px; font-family: inherit; color: var(--text); background: var(--bg); outline: none; transition: border-color .15s; }
+  .field input:focus { border-color: var(--accent); background: #fff; }
+  .field input.err { border-color: var(--error); }
+  .intro-err { font-size: 13px; color: var(--error); margin-bottom: 12px; min-height: 18px; }
+
+  .doc-header { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 32px; margin-bottom: 24px; }
+  .doc-header h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+  .doc-header p { font-size: 14px; color: var(--muted); }
+  .meta { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+  .meta-item { font-size: 13px; color: var(--muted); }
+  .badge { background: var(--accent-light); color: var(--accent); font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
+  .user-pill { background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; font-size: 13px; color: var(--muted); }
+
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 24px; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s ease; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 32px; margin-bottom: 20px; transition: border-color .2s; }
+  .card:focus-within { border-color: var(--accent); }
+  .q-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+  .q-num { font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; }
+  .q-type { font-size: 11px; color: var(--muted); background: var(--bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--border); white-space: nowrap; }
+  .q-text { font-size: 16px; font-weight: 500; line-height: 1.5; margin-bottom: 20px; }
+
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 10px; cursor: pointer; transition: all .15s; user-select: none; }
+  .option:hover:not(.disabled) { border-color: var(--accent); background: var(--accent-light); }
+  .option.selected { border-color: var(--accent); background: var(--accent-light); }
+  .option.correct { border-color: var(--success); background: var(--success-bg); }
+  .option.wrong { border-color: var(--error); background: var(--error-bg); }
+  .option.disabled { cursor: default; }
+  .opt-circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; transition: all .15s; }
+  .option.selected .opt-circle { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .option.correct .opt-circle { border-color: var(--success); background: var(--success); color: #fff; }
+  .option.wrong .opt-circle { border-color: var(--error); background: var(--error); color: #fff; }
+  .opt-label { font-size: 15px; }
+
+  .open-area { width: 100%; min-height: 100px; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 15px; font-family: inherit; color: var(--text); background: var(--bg); resize: vertical; line-height: 1.6; outline: none; transition: border-color .15s; }
+  .open-area:focus { border-color: var(--accent); background: #fff; }
+  .char-count { font-size: 12px; color: var(--muted); text-align: right; margin-top: 6px; }
+
+  .drag-zone { display: flex; flex-direction: column; gap: 8px; }
+  .drag-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; cursor: grab; user-select: none; transition: box-shadow .15s, opacity .15s; }
+  .drag-item:active { cursor: grabbing; }
+  .drag-item.dragging { opacity: .4; }
+  .drag-item.over { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+  .drag-item.correct-pos { border-color: var(--success); background: var(--success-bg); }
+  .drag-item.wrong-pos { border-color: var(--error); background: var(--error-bg); }
+  .drag-handle { color: var(--muted); font-size: 16px; }
+  .drag-badge { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .drag-text { font-size: 15px; }
+
+  .upload-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 32px 20px; text-align: center; cursor: pointer; transition: all .15s; }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: var(--accent-light); }
+  .upload-zone.has-file { border-color: var(--success); background: var(--success-bg); border-style: solid; }
+  .upload-icon { font-size: 28px; margin-bottom: 10px; }
+  .upload-text { font-size: 14px; color: var(--muted); }
+  .upload-text strong { color: var(--accent); }
+  .file-name { font-size: 14px; font-weight: 500; color: var(--success); margin-top: 8px; }
+  input[type=file] { display: none; }
+
+  .feedback { margin-top: 14px; padding: 12px 16px; border-radius: 8px; font-size: 14px; line-height: 1.5; display: none; }
+  .feedback.show { display: block; }
+  .feedback.ok { background: var(--success-bg); color: var(--success); border: 1px solid #9dd5b8; }
+  .feedback.ko { background: var(--error-bg); color: var(--error); border: 1px solid #f0b5b5; }
+  .feedback.info { background: var(--accent-light); color: var(--accent); border: 1px solid #c4b9f5; }
+
+  .controls { display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; flex-wrap: wrap; }
+  .btn { padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: #3a30b0; }
+  .btn-outline { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+  .btn-outline:hover:not(:disabled) { background: var(--accent-light); }
+  .btn:disabled { opacity: .4; cursor: default; }
+
+  /* Sending overlay */
+  #sending { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100; align-items: center; justify-content: center; }
+  #sending.show { display: flex; }
+  .sending-box { background: var(--card); border-radius: var(--radius); padding: 36px 40px; text-align: center; max-width: 320px; width: 90%; }
+  .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .sending-box p { font-size: 15px; color: var(--muted); }
+
+  #results { display: none; }
+  .results-header { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 36px 32px; text-align: center; margin-bottom: 24px; }
+  .score-circle { width: 110px; height: 110px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; flex-direction: column; font-size: 32px; font-weight: 700; border: 5px solid; }
+  .score-circle.high { border-color: var(--success); color: var(--success); background: var(--success-bg); }
+  .score-circle.mid { border-color: #c67d10; color: #c67d10; background: #fdf3e0; }
+  .score-circle.low { border-color: var(--error); color: var(--error); background: var(--error-bg); }
+  .score-label { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; }
+  .results-title { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+  .results-sub { font-size: 15px; color: var(--muted); }
+  .sync-badge { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; padding: 6px 14px; border-radius: 20px; font-size: 13px; }
+  .sync-badge.ok { background: var(--success-bg); color: var(--success); }
+  .sync-badge.ko { background: var(--error-bg); color: var(--error); }
+  .results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
+  .stat-card { background: var(--bg); border-radius: 10px; padding: 16px; text-align: center; }
+  .stat-num { font-size: 26px; font-weight: 700; }
+  .stat-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .review-section { margin-bottom: 20px; }
+  .review-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 28px; margin-bottom: 12px; }
+  .review-card h3 { font-size: 15px; font-weight: 500; margin-bottom: 10px; }
+  .review-ans { font-size: 14px; padding: 8px 12px; border-radius: 6px; margin-top: 6px; }
+  .review-ans.ok { background: var(--success-bg); color: var(--success); }
+  .review-ans.ko { background: var(--error-bg); color: var(--error); }
+  .review-ans.neutral { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+  .review-correct { font-size: 13px; color: var(--success); margin-top: 6px; }
+  .download-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 24px; }
+
+  @media (max-width: 500px) {
+    .card, .doc-header, #intro { padding: 20px 18px; }
+    .results-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sending overlay -->
+<div id="sending">
+  <div class="sending-box">
+    <div class="spinner"></div>
+    <p>Saving your results…</p>
+  </div>
+</div>
+
+<div class="shell">
+
+  <!-- Intro / identification -->
+  <div id="intro">
+    <h1>Module 3 — Effective team communication</h1>
+    <p>Please enter your details before starting. Your answers will be saved automatically when you finish.</p>
+    <div class="field-group">
+      <div class="field">
+        <label>Full name</label>
+        <input type="text" id="inp-name" placeholder="e.g. Laura Martínez" autocomplete="name">
+      </div>
+      <div class="field">
+        <label>Company</label>
+        <input type="text" id="inp-company" placeholder="e.g. Acme Corp" autocomplete="organization">
+      </div>
+      <div class="field">
+        <label>Department</label>
+        <input type="text" id="inp-dept" placeholder="e.g. Sales, HR, Engineering">
+      </div>
+    </div>
+    <div class="intro-err" id="intro-err"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="startQuiz()">Start exercises →</button>
+  </div>
+
+  <!-- Quiz -->
+  <div id="quiz-section" style="display:none">
+    <div class="doc-header">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+        <div>
+          <h1>Module 3 — Effective team communication</h1>
+          <p>Complete all exercises before moving on to the next module.</p>
+        </div>
+        <span class="badge">4 exercises</span>
+      </div>
+      <div class="meta">
+        <span class="meta-item">⏱ Estimated time: 10 min</span>
+        <span class="meta-item">📋 Quiz · Text · Order · File</span>
+        <span class="user-pill" id="user-pill"></span>
+      </div>
+    </div>
+
+    <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+
+    <!-- Q1 -->
+    <div class="card">
+      <div class="q-header">
+        <span class="q-num">Question 1 of 4</span>
+        <span class="q-type">Multiple choice</span>
+      </div>
+      <p class="q-text">Which of the following best describes active listening during a team meeting?</p>
+      <div class="options" id="opts-1">
+        <div class="option" data-val="a" onclick="selectOption(this,'1','a')"><div class="opt-circle"></div><span class="opt-label">Waiting for your turn to speak while mentally preparing your response</span></div>
+        <div class="option" data-val="b" onclick="selectOption(this,'1','b')"><div class="opt-circle"></div><span class="opt-label">Giving full attention, paraphrasing what was said, and asking clarifying questions</span></div>
+        <div class="option" data-val="c" onclick="selectOption(this,'1','c')"><div class="opt-circle"></div><span class="opt-label">Taking detailed notes of everything without interrupting</span></div>
+        <div class="option" data-val="d" onclick="selectOption(this,'1','d')"><div class="opt-circle"></div><span class="opt-label">Nodding along to show agreement throughout</span></div>
+      </div>
+      <div class="feedback" id="fb-1"></div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="card">
+      <div class="q-header">
+        <span class="q-num">Question 2 of 4</span>
+        <span class="q-type">Open response</span>
+      </div>
+      <p class="q-text">Describe a real (or hypothetical) situation where unclear communication caused a problem in your team. What would you have done differently?</p>
+      <textarea class="open-area" id="open-2" placeholder="Write your answer here…" oninput="updateChar('2')"></textarea>
+      <div class="char-count" id="char-2">0 / 500 recommended characters</div>
+      <div class="feedback info show" id="fb-2">This response will be reviewed by your trainer. There is no wrong answer — reflection is what matters.</div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="card">
+      <div class="q-header">
+        <span class="q-num">Question 3 of 4</span>
+        <span class="q-type">Order the steps</span>
+      </div>
+      <p class="q-text">Drag and drop the steps of the constructive feedback model into the correct order:</p>
+      <div class="drag-zone" id="drag-3">
+        <div class="drag-item" draggable="true" data-id="3" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragleave="dragLeave(event)"><span class="drag-handle">⠿</span><div class="drag-badge">?</div><span class="drag-text">Describe the observed behaviour (not the person)</span></div>
+        <div class="drag-item" draggable="true" data-id="1" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragleave="dragLeave(event)"><span class="drag-handle">⠿</span><div class="drag-badge">?</div><span class="drag-text">Choose the right time and place</span></div>
+        <div class="drag-item" draggable="true" data-id="4" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragleave="dragLeave(event)"><span class="drag-handle">⠿</span><div class="drag-badge">?</div><span class="drag-text">Propose a concrete improvement and agree on follow-up</span></div>
+        <div class="drag-item" draggable="true" data-id="2" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragleave="dragLeave(event)"><span class="drag-handle">⠿</span><div class="drag-badge">?</div><span class="drag-text">Explain the impact of the behaviour on the team</span></div>
+      </div>
+      <div class="feedback" id="fb-3"></div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="card">
+      <div class="q-header">
+        <span class="q-num">Question 4 of 4</span>
+        <span class="q-type">Upload evidence</span>
+      </div>
+      <p class="q-text">Upload a screenshot, photo, or document showing an example of effective communication you have applied (email, team message, meeting notes, etc.)</p>
+      <div class="upload-zone" id="upload-4" onclick="document.getElementById('file-4').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDrop(event,'4')">
+        <input type="file" id="file-4" accept="image/*,.pdf,.doc,.docx" onchange="handleFile(this,'4')">
+        <div class="upload-icon">📎</div>
+        <div class="upload-text"><strong>Click to select</strong> or drag your file here</div>
+        <div class="upload-text" style="margin-top:4px">Image, PDF or Word · Max 10 MB</div>
+        <div class="file-name" id="fname-4"></div>
+      </div>
+      <div class="feedback info show" id="fb-4">The file name will be logged in the report. Your trainer will follow up.</div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-outline" onclick="checkAll()">Check answers</button>
+      <button class="btn btn-primary" onclick="submit()">Finish and see results</button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+    <div class="results-header">
+      <div class="score-circle" id="score-circle">
+        <span id="score-pct">—</span>
+        <span class="score-label">score</span>
+      </div>
+      <div class="results-title" id="results-title">Exercise completed</div>
+      <div class="results-sub" id="results-sub"></div>
+      <div id="sync-badge"></div>
+      <div class="results-grid">
+        <div class="stat-card"><div class="stat-num" id="stat-ok" style="color:var(--success)">—</div><div class="stat-label">Correct</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-ko" style="color:var(--error)">—</div><div class="stat-label">Incorrect</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-open" style="color:var(--accent)">—</div><div class="stat-label">For review</div></div>
+      </div>
+    </div>
+    <div class="review-section" id="review-section"></div>
+    <div class="download-row">
+      <button class="btn btn-outline" onclick="restartQuiz()">⟳ Retry</button>
+      <button class="btn btn-primary" onclick="downloadPDF()">⬇ Download PDF report</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxZ6X21_PtyVyzchoNtFOmu_TDAKh6WCQ-EGI9XksltcQ34exnuRCY-0YYjjx0kheZ_lg/exec';
+const CORRECT = { q1: 'b', q3: ['1','2','3','4'] };
+const state = { name: '', company: '', dept: '', q1: null, q2: '', q3: [], q4: null, submitted: false };
+
+// ── Intro ─────────────────────────────────────────────────────────────────
+function startQuiz() {
+  const name = document.getElementById('inp-name').value.trim();
+  const company = document.getElementById('inp-company').value.trim();
+  const dept = document.getElementById('inp-dept').value.trim();
+  const err = document.getElementById('intro-err');
+  document.getElementById('inp-name').classList.remove('err');
+  document.getElementById('inp-company').classList.remove('err');
+  document.getElementById('inp-dept').classList.remove('err');
+  if (!name || !company || !dept) {
+    err.textContent = 'Please fill in all fields before starting.';
+    if (!name) document.getElementById('inp-name').classList.add('err');
+    if (!company) document.getElementById('inp-company').classList.add('err');
+    if (!dept) document.getElementById('inp-dept').classList.add('err');
+    return;
+  }
+  state.name = name; state.company = company; state.dept = dept;
+  document.getElementById('intro').style.display = 'none';
+  document.getElementById('quiz-section').style.display = 'block';
+  document.getElementById('user-pill').textContent = `${name} · ${company} · ${dept}`;
+}
+
+// ── Q1 ────────────────────────────────────────────────────────────────────
+function selectOption(el, qId, val) {
+  if (state.submitted) return;
+  document.querySelectorAll(`#opts-${qId} .option`).forEach(o => { o.classList.remove('selected'); o.querySelector('.opt-circle').textContent = ''; });
+  el.classList.add('selected'); el.querySelector('.opt-circle').textContent = '✓';
+  state[`q${qId}`] = val; updateProgress();
+}
+
+// ── Q2 ────────────────────────────────────────────────────────────────────
+function updateChar(qId) {
+  const ta = document.getElementById(`open-${qId}`);
+  state[`q${qId}`] = ta.value;
+  document.getElementById(`char-${qId}`).textContent = `${ta.value.length} / 500 recommended characters`;
+  updateProgress();
+}
+
+// ── Q3 drag & drop ────────────────────────────────────────────────────────
+let dragSrc = null;
+function dragStart(e) { dragSrc = e.currentTarget; e.currentTarget.classList.add('dragging'); }
+function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('over'); }
+function dragLeave(e) { e.currentTarget.classList.remove('over'); }
+function drop(e) {
+  e.preventDefault(); const target = e.currentTarget; target.classList.remove('over');
+  if (dragSrc && dragSrc !== target) {
+    const zone = document.getElementById('drag-3');
+    const items = [...zone.querySelectorAll('.drag-item')];
+    const si = items.indexOf(dragSrc), ti = items.indexOf(target);
+    if (si < ti) zone.insertBefore(dragSrc, target.nextSibling); else zone.insertBefore(dragSrc, target);
+    updateDragBadges();
+  }
+  if (dragSrc) dragSrc.classList.remove('dragging'); dragSrc = null; updateProgress();
+}
+function updateDragBadges() {
+  const items = [...document.querySelectorAll('#drag-3 .drag-item')];
+  state.q3 = items.map(i => i.dataset.id);
+  items.forEach((item, i) => { item.querySelector('.drag-badge').textContent = i + 1; });
+}
+updateDragBadges();
+
+// ── Q4 upload ─────────────────────────────────────────────────────────────
+function handleFile(input, qId) {
+  const f = input.files[0]; if (!f) return;
+  state[`q${qId}`] = f.name;
+  document.getElementById(`upload-${qId}`).classList.add('has-file');
+  document.getElementById(`fname-${qId}`).textContent = `✓ ${f.name}`;
+  updateProgress();
+}
+function handleDrop(e, qId) {
+  e.preventDefault(); document.getElementById(`upload-${qId}`).classList.remove('dragover');
+  const f = e.dataTransfer.files[0]; if (!f) return;
+  state[`q${qId}`] = f.name;
+  document.getElementById(`upload-${qId}`).classList.add('has-file');
+  document.getElementById(`fname-${qId}`).textContent = `✓ ${f.name}`;
+  updateProgress();
+}
+
+// ── Progress ──────────────────────────────────────────────────────────────
+function updateProgress() {
+  let done = 0;
+  if (state.q1) done++; if (state.q2.length > 20) done++;
+  if (state.q3.length) done++; if (state.q4) done++;
+  document.getElementById('progress').style.width = (done / 4 * 100) + '%';
+}
+
+// ── Check ─────────────────────────────────────────────────────────────────
+function checkAll() {
+  document.querySelectorAll('#opts-1 .option').forEach(o => {
+    o.classList.add('disabled');
+    if (o.dataset.val === CORRECT.q1) { o.classList.add('correct'); o.querySelector('.opt-circle').textContent = '✓'; }
+    else if (o.classList.contains('selected')) { o.classList.remove('selected'); o.classList.add('wrong'); o.querySelector('.opt-circle').textContent = '✗'; }
+  });
+  const fb1 = document.getElementById('fb-1');
+  if (state.q1 === CORRECT.q1) { fb1.className = 'feedback ok show'; fb1.textContent = '✓ Correct. Active listening means paraphrasing and asking questions to confirm understanding.'; }
+  else { fb1.className = 'feedback ko show'; fb1.textContent = '✗ Incorrect. The key is to paraphrase what you heard and ask questions — not just listen silently.'; }
+
+  const c3 = JSON.stringify(CORRECT.q3) === JSON.stringify(state.q3);
+  document.querySelectorAll('#drag-3 .drag-item').forEach((item, i) => {
+    item.setAttribute('draggable', false);
+    item.classList.add(item.dataset.id === CORRECT.q3[i] ? 'correct-pos' : 'wrong-pos');
+  });
+  const fb3 = document.getElementById('fb-3');
+  if (c3) { fb3.className = 'feedback ok show'; fb3.textContent = '✓ Correct order. Context first, then behaviour, impact, and finally the proposal.'; }
+  else { fb3.className = 'feedback ko show'; fb3.textContent = '✗ Incorrect. Right sequence: (1) Choose the moment, (2) Describe the behaviour, (3) Explain the impact, (4) Propose an improvement.'; }
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────
+async function submit() {
+  state.submitted = true; checkAll();
+  const c1 = state.q1 === CORRECT.q1;
+  const c3 = JSON.stringify(CORRECT.q3) === JSON.stringify(state.q3);
+  const pct = Math.round([c1, c3].filter(Boolean).length / 2 * 100);
+
+  // Show overlay
+  document.getElementById('sending').classList.add('show');
+
+  // Send to Google Sheets
+  let synced = false;
+  try {
+    await fetch(SHEET_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: state.name, company: state.company, department: state.dept,
+        date: new Date().toISOString().slice(0, 10),
+        q1_answer: state.q1 || 'no answer',
+        q1_correct: c1,
+        q2_response: state.q2 || 'no answer',
+        q3_order: state.q3.join('→'),
+        q3_correct: c3,
+        q4_file: state.q4 || 'no file',
+        score_pct: pct
+      })
+    });
+    synced = true;
+  } catch (err) { synced = false; }
+
+  document.getElementById('sending').classList.remove('show');
+  document.getElementById('quiz-section').style.display = 'none';
+  document.getElementById('results').style.display = 'block';
+
+  const circle = document.getElementById('score-circle');
+  circle.querySelector('#score-pct').textContent = pct + '%';
+  circle.className = 'score-circle ' + (pct >= 70 ? 'high' : pct >= 40 ? 'mid' : 'low');
+  document.getElementById('results-title').textContent = pct >= 70 ? 'Great work!' : pct >= 40 ? 'Room to improve' : 'Review the module';
+  document.getElementById('results-sub').textContent = 'Score based on auto-graded questions (quiz and ordering)';
+
+  const badge = document.getElementById('sync-badge');
+  badge.innerHTML = synced
+    ? '<span class="sync-badge ok">✓ Results saved to Google Sheets</span>'
+    : '<span class="sync-badge ko">⚠ Could not save — please download the PDF</span>';
+
+  document.getElementById('stat-ok').textContent = [c1, c3].filter(Boolean).length;
+  document.getElementById('stat-ko').textContent = 2 - [c1, c3].filter(Boolean).length;
+  document.getElementById('stat-open').textContent = state.q2.length > 0 || state.q4 ? 2 : 0;
+
+  const sec = document.getElementById('review-section');
+  sec.innerHTML = [
+    { title: 'Q1 — Active listening', ans: state.q1 ? `You chose option ${state.q1.toUpperCase()} — ${c1?'CORRECT':'INCORRECT'}` : 'No answer', cls: c1?'ok':'ko', correct: !c1?'Correct answer: option B — Giving full attention, paraphrasing, and asking clarifying questions.':null },
+    { title: 'Q2 — Open reflection', ans: state.q2.length>0 ? state.q2.slice(0,200)+(state.q2.length>200?'…':'') : 'No answer', cls:'neutral', correct:null },
+    { title: 'Q3 — Step ordering', ans: c3?'Correct order ✓':`Your order: ${state.q3.map(Number).join(' → ')}`, cls:c3?'ok':'ko', correct:!c3?'Correct order: 1 → 2 → 3 → 4':null },
+    { title: 'Q4 — Uploaded evidence', ans: state.q4?`Attached: ${state.q4}`:'No file uploaded', cls:state.q4?'neutral':'ko', correct:null }
+  ].map(item => `<div class="review-card"><h3>${item.title}</h3><div class="review-ans ${item.cls}">${item.ans}</div>${item.correct?`<div class="review-correct">${item.correct}</div>`:''}</div>`).join('');
+}
+
+// ── Restart ───────────────────────────────────────────────────────────────
+function restartQuiz() {
+  Object.assign(state, { q1:null, q2:'', q3:[], q4:null, submitted:false });
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('quiz-section').style.display = 'block';
+  document.querySelectorAll('.feedback').forEach(f => { f.className='feedback'; f.textContent=''; });
+  document.querySelectorAll('.option').forEach(o => { o.className='option'; o.querySelector('.opt-circle').textContent=''; });
+  document.querySelectorAll('.drag-item').forEach(i => { i.className='drag-item'; i.setAttribute('draggable',true); });
+  document.getElementById('fb-2').className='feedback info show';
+  document.getElementById('fb-2').textContent='This response will be reviewed by your trainer. There is no wrong answer — reflection is what matters.';
+  document.getElementById('fb-4').className='feedback info show';
+  document.getElementById('fb-4').textContent='The file name will be logged in the report. Your trainer will follow up.';
+  document.getElementById('open-2').value='';
+  document.getElementById('char-2').textContent='0 / 500 recommended characters';
+  document.getElementById('upload-4').className='upload-zone';
+  document.getElementById('fname-4').textContent='';
+  document.getElementById('progress').style.width='0%';
+  updateDragBadges();
+}
+
+// ── PDF ───────────────────────────────────────────────────────────────────
+function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'pt', format:'a4' });
+  const W = doc.internal.pageSize.getWidth(), margin = 48;
+  let y = 60;
+  const c1 = state.q1===CORRECT.q1, c3 = JSON.stringify(CORRECT.q3)===JSON.stringify(state.q3);
+  const pct = Math.round([c1,c3].filter(Boolean).length/2*100);
+
+  doc.setFontSize(18); doc.setFont('helvetica','bold');
+  doc.text('Exercise report', margin, y); y+=28;
+  doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(100);
+  doc.text('Module 3 — Effective team communication', margin, y); y+=16;
+  doc.text(`Student: ${state.name}  ·  Company: ${state.company}  ·  Dept: ${state.dept}`, margin, y); y+=16;
+  doc.text(`Date: ${new Date().toLocaleDateString('en-GB')}  ·  Auto-graded score: ${pct}%`, margin, y); y+=30;
+  doc.setTextColor(0);
+
+  [
+    { q:'Q1 — Active listening (quiz)', a: state.q1?`Option ${state.q1.toUpperCase()} — ${c1?'CORRECT':'INCORRECT'}`:'No answer' },
+    { q:'Q2 — Open reflection', a: state.q2||'No answer' },
+    { q:'Q3 — Step ordering', a: `${c3?'Correct':'Incorrect'} · Order: ${state.q3.join(' → ')}` },
+    { q:'Q4 — Uploaded evidence', a: state.q4?`File: ${state.q4}`:'No file uploaded' }
+  ].forEach(({ q, a }) => {
+    doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.text(q, margin, y); y+=18;
+    doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(60);
+    const lines = doc.splitTextToSize(a, W-margin*2); doc.text(lines, margin, y);
+    y += lines.length*15+18; doc.setTextColor(0);
+    if (y>740) { doc.addPage(); y=60; }
+  });
+  doc.save(`exercises_module3_${state.name.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+</script>
+</body>
+</html>
